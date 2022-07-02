@@ -1,0 +1,45 @@
+
+{
+  "experiment_name": "test",
+  "general":{
+    "runs": 5,
+    "seed": 1003,
+    "description": "Config for test BERT, CR dataset and random sampling for query strategy",
+    "max_reproducibility": null
+  },
+  "classifier":{
+    "classifier_name": "transformer",
+    "validation_set_size": 0.1,
+    "classifier_kwargs":{
+      "transformer_model": "bert-large-uncased",
+      "mini_batch_size": 12,
+      "lr": 0.00002,
+      "incremental_training": true,
+      "scheduler": "slanted",
+      "layerwise_gradient_decay": 0.975,
+      "num_epochs": 15
+    }
+  },
+
+  "dataset": {
+    "dataset_name" :"cr",
+    "dataset_kwargs": {
+      "dataset_type": "transformers",
+      "max_length": 50
+    }
+  },
+  "active_learner": {
+    "num_queries": 20,
+    "query_size": 25,
+    "query_strategy": "rd",
+    "initialization_strategy": "srandom",
+    "initialization_strategy_kwargs":{
+      "num_instances": 25
+    },
+    "query_strategy_kwargs":{
+
+    }
+  }
+
+
+}

@@ -1,0 +1,5 @@
+/.idea
+/active_learning_lab/.active_learning_lib_cache
+/active_learning_lab/.transformers_cache
+/active_learning_lab/__pycache__
+/active_learning_lab/mlruns
