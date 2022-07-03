@@ -254,8 +254,9 @@ class ActiveLearningRun(object):
                 self.metrics_tracker.track_train_history(
                     q, self.train_history_dir, active_learner.classifier.train_history)
 
-        torch.cuda.synchronize()
-        torch.cuda.empty_cache()
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+            torch.cuda.empty_cache()
 
     def _get_initialized_active_learner(self, train_set):
 

@@ -87,7 +87,7 @@ if __name__ == '__main__':
     del arg_list[0]
     del arg_list[0]
     # parser = get_parser()
-    # args = parser.parse_args(arg_list)
+    #args = parser.parse_args(arg_list)
 
     with open('..\config\\' + arg_list[0] + '.json') as json_file:
         args = json.load(json_file)

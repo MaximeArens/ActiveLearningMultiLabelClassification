@@ -4,7 +4,7 @@ import types
 import numpy as np
 
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import _LRScheduler, LambdaLR
 
 from transformers import get_linear_schedule_with_warmup
 
@@ -142,5 +142,5 @@ class TransformerBasedClassificationExtendedFactory(TransformerBasedClassificati
         clf._initialize_optimizer_and_scheduler = types.MethodType(
             _initialize_optimizer_and_scheduler, clf)
         clf._fit_main = types.MethodType(_fit_main, clf)
-
+        self.kwargs['scheduler'] = scheduler
         return clf

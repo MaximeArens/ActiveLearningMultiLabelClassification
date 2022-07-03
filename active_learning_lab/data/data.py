@@ -402,8 +402,8 @@ def _text_to_bow(x, y, x_test, y_test, max_features=50000, ngram_range=(1, 2)):
     x = vectorizer.fit_transform(x)
     x_test = vectorizer.transform(x_test)
 
-    return (SklearnDataset(normalize(x), y),
-            SklearnDataset(normalize(x_test), y_test))
+    return (SklearnDataset(normalize(x), np.array(y)),
+            SklearnDataset(normalize(x_test), np.array(y_test)))
 
 
 def _text_to_transformers_dataset(tokenizer, train_text, train_labels, test_text,

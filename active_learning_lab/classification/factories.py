@@ -16,7 +16,7 @@ from active_learning_lab.classification.transformers_extension import (
 def get_factory(classifier_name, num_classes, classifier_kwargs={}):
 
     if classifier_name == 'svm':
-        return SklearnClassifierFactoryExtended(ConfidenceEnhancedLinearSVC(**classifier_kwargs))
+        return SklearnClassifierFactoryExtended(ConfidenceEnhancedLinearSVC(**classifier_kwargs), num_classes)
     elif classifier_name == 'kimcnn':
         return KimCNNExtendedFactory(classifier_name, num_classes, kwargs=classifier_kwargs)
     elif classifier_name == 'transformer':
