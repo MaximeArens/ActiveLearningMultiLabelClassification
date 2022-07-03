@@ -1,0 +1,42 @@
+
+{
+  "experiment_name": "test_kimcnn",
+  "general":{
+    "runs": 1,
+    "seed": 1003,
+    "description": "Config for test KimCNN, CR dataset and random sampling for query strategy",
+    "max_reproducibility": null
+  },
+  "classifier":{
+    "classifier_name": "kimcnn",
+    "validation_set_size": 0.1,
+    "classifier_kwargs":{
+      "incremental_training": true,
+      "dropout": 0.5,
+      "out_channels": 50,
+      "padding_idx": 1,
+      "embedding_matrix": "word2vec",
+      "max_seq_len": 50
+      }
+    },
+
+
+  "dataset": {
+    "dataset_name" :"cr",
+    "dataset_kwargs": {
+      "dataset_type": "tps"
+    }
+  },
+  "active_learner": {
+    "num_queries": 2,
+    "query_size": 25,
+    "query_strategy": "rd",
+    "initialization_strategy": "srandom",
+    "initialization_strategy_kwargs":{
+      "num_instances": 25
+    },
+    "query_strategy_kwargs":{
+
+    }
+  }
+}

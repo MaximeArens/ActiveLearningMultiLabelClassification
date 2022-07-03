@@ -55,26 +55,26 @@ def embed(self, data_set, return_proba=False, _embedding_method='unused',
 
 
 # this is a fix because model.eval() was missing here in small-text==1.0.0a8
-def validate(self, validation_set):
-    self.model.eval()
-
-    valid_loss = 0.
-    acc = 0.
-
-    valid_iter = dataloader(validation_set.data, self.mini_batch_size, self._create_collate_fn(),
-                            train=False)
-
-    for x, cls in valid_iter:
-        x, cls = x.to(self.device), cls.to(self.device)
-
-        with torch.no_grad():
-            output = self.model(x)
-            loss = self.criterion(output, cls)
-            valid_loss += loss.item()
-            acc += (output.argmax(1) == cls).sum().item()
-            del output, x, cls
-
-    return valid_loss / len(validation_set), acc / len(validation_set)
+# def validate(self, validation_set):
+#     self.model.eval()
+#
+#     valid_loss = 0.
+#     acc = 0.
+#
+#     valid_iter = dataloader(validation_set.data, self.mini_batch_size, self._create_collate_fn(),
+#                             train=False)
+#
+#     for x, cls in valid_iter:
+#         x, cls = x.to(self.device), cls.to(self.device)
+#
+#         with torch.no_grad():
+#             output = self.model(x)
+#             loss = self.criterion(output, cls)
+#             valid_loss += loss.item()
+#             acc += (output.argmax(1) == cls).sum().item()
+#             del output, x, cls
+#
+#     return valid_loss / len(validation_set), acc / len(validation_set)
 
 
 class KimCNNExtendedFactory(KimCNNFactory):
@@ -83,6 +83,5 @@ class KimCNNExtendedFactory(KimCNNFactory):
         clf = super().new()
 
         clf.embed = types.MethodType(embed, clf)
-        clf.validate = types.MethodType(validate, clf)
 
         return clf
