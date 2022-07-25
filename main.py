@@ -4,7 +4,7 @@ Note:
 This examples requires the datasets library.
 """
 import numpy as np
-
+from sklearn.metrics import f1_score
 from transformers import AutoTokenizer
 
 from small_text.active_learner import PoolBasedActiveLearner
@@ -15,11 +15,11 @@ from small_text.integrations.transformers.classifiers.factories import Transform
 from small_text.query_strategies import PoolExhaustedException, EmptyPoolException
 from small_text.query_strategies import RandomSampling
 
-from examplecode.data.example_data_multilabel import (
-    get_train_test
-)
-from examplecode.data.example_data_transformers import preprocess_data
-from examplecode.shared import evaluate_multi_label
+#from examplecode.data.example_data_multilabel import (
+#    get_train_test
+#)
+#from examplecode.data.example_data_transformers import preprocess_data
+#from examplecode.shared import evaluate_multi_label
 
 
 TRANSFORMER_MODEL = TransformerModelArguments('distilroberta-base')
@@ -31,6 +31,8 @@ except ImportError:
     raise ActiveLearnerException('This example requires the "datasets" library. '
                                  'Please install datasets to run this example.')
 
+def get_train_test():
+    return get_go_emotions_dataset()
 
 def main(num_iterations=10):
     # Active learning parameters
@@ -38,7 +40,7 @@ def main(num_iterations=10):
     clf_factory = TransformerBasedClassificationFactory(TRANSFORMER_MODEL,
                                                         num_classes,
                                                         kwargs=dict({
-                                                            'device': 'cuda',
+                                                            'device': 'cpu',
                                                             'multi_label': True
                                                         }))
     query_strategy = RandomSampling()
@@ -47,9 +49,9 @@ def main(num_iterations=10):
     train, test = get_train_test()
 
     tokenizer = AutoTokenizer.from_pretrained(TRANSFORMER_MODEL.model, cache_dir='.cache/')
-    train = preprocess_data(tokenizer, train['text'], train['labels'], multi_label=True)
+    train = preprocess_data(tokenizer, train['text'][:5000], train['labels'][:5000], multi_label=True)
 
-    test = preprocess_data(tokenizer, test['text'], test['labels'], multi_label=True)
+    test = preprocess_data(tokenizer, test['text'][:5000], test['labels'][:5000], multi_label=True)
 
     # Active learner
     active_learner = PoolBasedActiveLearner(clf_factory, query_strategy, train)
@@ -90,6 +92,57 @@ def initialize_active_learner(active_learner, y_train):
 
     return indices_initial
 
+
+import numpy as np
+
+from small_text.integrations.transformers.datasets import TransformersDataset
+
+
+def preprocess_data(tokenizer, data, labels, max_length=500, multi_label=False):
+
+    data_out = []
+
+    for i, doc in enumerate(data):
+        encoded_dict = tokenizer.encode_plus(
+            doc,
+            add_special_tokens=True,
+            padding='max_length',
+            max_length=max_length,
+            return_attention_mask=True,
+            return_tensors='pt',
+            truncation='longest_first'
+        )
+
+        if multi_label:
+            data_out.append((encoded_dict['input_ids'],
+                             encoded_dict['attention_mask'],
+                             np.sort(labels[i])))
+        else:
+            data_out.append((encoded_dict['input_ids'],
+                             encoded_dict['attention_mask'],
+                             labels[i]))
+
+    return TransformersDataset(data_out, multi_label=multi_label)
+
+
+def evaluate_multi_label(active_learner, train, test):
+    y_pred = active_learner.classifier.predict(train)
+    y_pred_test = active_learner.classifier.predict(test)
+
+    # https://github.com/scikit-learn/scikit-learn/issues/18611
+    print('Train accuracy: {:.2f}'.format(
+        f1_score(y_pred.toarray(), train.y.toarray(), average='micro')))
+    print('Test accuracy: {:.2f}'.format(f1_score(y_pred_test.toarray(),
+                                                  test.y.toarray(), average='micro')))
+    print('---')
+
+
+def get_go_emotions_dataset():
+    import datasets
+    from datasets import concatenate_datasets
+    go_emotions = datasets.load_dataset('go_emotions')
+
+    return concatenate_datasets([go_emotions['train'], go_emotions['validation']]), go_emotions['test']
 
 if __name__ == '__main__':
     import argparse

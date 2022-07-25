@@ -18,4 +18,5 @@ class SklearnClassifierWithEmbeddings(EmbeddingMixin, SklearnClassifier):
 class SklearnClassifierFactoryExtended(SklearnClassifierFactory):
 
     def new(self):
+
         return SklearnClassifierWithEmbeddings(self.base_estimator, num_classes=self.num_classes)

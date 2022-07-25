@@ -7,7 +7,8 @@ import pandas as pd
 
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from active_learning_lab.utils.calibration import expected_calibration_error
-
+from scipy.sparse import csr_matrix
+from small_text.utils.labels import csr_to_list
 
 METRIC_COLUMNS = [
     'train_acc', 'train_micro_precision', 'train_micro_recall', 'train_micro_f1',
@@ -118,7 +119,10 @@ class QueryTracker(object):
     def track_initial_indices(self, indices, labels):
         if self.query_data['initial_indices'] is None:
             self.query_data['initial_indices'] = indices.tolist()
-            self.query_data['initial_labels'] = labels.tolist()
+            if isinstance(labels, csr_matrix):
+                self.query_data['initial_labels'] = csr_to_list(labels)
+            else:
+                self.query_data['initial_labels'] = labels.tolist()
         else:
             raise ValueError('Initial indices can only bet set once')
 

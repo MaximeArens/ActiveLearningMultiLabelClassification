@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 
+from scipy.sparse import csr_matrix
 from active_learning_lab.classification.factories import get_factory
 from active_learning_lab.data.data import load_dataset
 
@@ -54,7 +55,10 @@ class ActiveLearningExperimentBuilder(object):
                                                  dataset_kwargs,
                                                  self.classifier_name,
                                                  self.classifier_kwargs)
-            self.num_classes = np.unique(self.train.y).shape[0]
+            if isinstance(self.train.y, csr_matrix):
+                self.num_classes = self.train.y.shape[1]
+            else:
+                self.num_classes = np.unique(self.train.y).shape[0]
 
         self.dataset_config = DatasetConfig(dataset_name, dataset_kwargs, train_raw, test_raw)
 

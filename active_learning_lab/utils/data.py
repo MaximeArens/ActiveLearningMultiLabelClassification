@@ -1,5 +1,5 @@
 from small_text.utils.data import list_length
-from small_text.data.sampling import stratified_sampling, balanced_sampling
+from small_text.data.sampling import stratified_sampling, balanced_sampling, multilabel_stratified_subsets_sampling
 
 
 def get_validation_set(y, strategy='balanced', validation_set_size=0.1):
@@ -13,5 +13,7 @@ def get_validation_set(y, strategy='balanced', validation_set_size=0.1):
         return balanced_sampling(y, n_samples=n_samples)
     elif strategy == 'stratified':
         return stratified_sampling(y, n_samples=n_samples)
+    elif strategy == 'multilabel':
+        return multilabel_stratified_subsets_sampling(y, n_samples=n_samples)
 
     raise ValueError(f'Invalid strategy: {strategy}')

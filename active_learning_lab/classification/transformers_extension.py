@@ -8,7 +8,7 @@ from torch.optim.lr_scheduler import _LRScheduler, LambdaLR
 
 from transformers import get_linear_schedule_with_warmup
 
-from small_text.integrations.transformers.classifiers.classification import _get_layer_params
+from small_text.integrations.transformers.classifiers.classification import _get_layer_params, get_num_labels
 from small_text.integrations.transformers.classifiers.factories import (
     TransformerBasedClassificationFactory
 )
@@ -19,14 +19,15 @@ from small_text.utils.system import get_tmp_dir_base
 # suppresses an unnecessary log warning that was shown in small-text v1.0.0a8
 def _fit_main(self, sub_train, sub_valid, optimizer, scheduler):
     if self.model is None:
-        y = [entry[TransformersDataset.INDEX_LABEL] for entry in sub_train]
-        if self.num_classes is None:
-            self.num_classes = np.max(y) + 1
+        encountered_num_classes = get_num_labels(sub_train.y)
 
-        if self.num_classes != np.max(y) + 1:
+        if self.num_classes is None:
+            self.num_classes = encountered_num_classes
+
+        if self.num_classes != encountered_num_classes:
             raise ValueError('Conflicting information about the number of classes: '
                              'expected: {}, encountered: {}'.format(self.num_classes,
-                                                                    np.max(y) + 1))
+                                                                    encountered_num_classes))
 
         self.initialize_transformer(self.cache_dir)
 
@@ -141,6 +142,7 @@ class TransformerBasedClassificationExtendedFactory(TransformerBasedClassificati
         clf.scheduler = scheduler
         clf._initialize_optimizer_and_scheduler = types.MethodType(
             _initialize_optimizer_and_scheduler, clf)
+        clf.multi_label = self.kwargs['multi_label']
         clf._fit_main = types.MethodType(_fit_main, clf)
         self.kwargs['scheduler'] = scheduler
         return clf

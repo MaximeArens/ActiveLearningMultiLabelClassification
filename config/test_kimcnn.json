@@ -15,6 +15,7 @@
       "dropout": 0.5,
       "out_channels": 50,
       "padding_idx": 1,
+      "multi_label": true,
       "embedding_matrix": "word2vec",
       "max_seq_len": 50
       }
@@ -22,9 +23,10 @@
 
 
   "dataset": {
-    "dataset_name" :"cr",
+    "dataset_name" :"go_emotions",
     "dataset_kwargs": {
-      "dataset_type": "tps"
+      "dataset_type": "tps",
+      "sampling_strategy": "multilabel"
     }
   },
   "active_learner": {

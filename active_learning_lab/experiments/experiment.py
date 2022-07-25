@@ -11,6 +11,7 @@ from functools import partial
 from pathlib import Path
 
 from sklearn.metrics import auc
+from scipy.sparse import csr_matrix, vstack
 
 from small_text.active_learner import PoolBasedActiveLearner
 from small_text.integrations.pytorch.classifiers import PytorchClassifier
@@ -85,7 +86,10 @@ class ActiveLearningExperiment(object):
 
         self.classification_args = classification_cfg
 
-        self.num_classes = np.unique(train.y).shape[0]
+        if isinstance(train.y, csr_matrix):
+            self.num_classes = train.y.shape[1]
+        else:
+            self.num_classes = np.unique(train.y).shape[0]
 
         self.initialization_strategy = initialization_strategy
         self.initialization_strategy_kwargs = initialization_strategy_kwargs
@@ -217,6 +221,7 @@ class ActiveLearningRun(object):
         else:
             x_indices_validation = get_validation_set(
                 y_init,
+                strategy=self.dataset_config.dataset_kwargs['sampling_strategy'],
                 validation_set_size=self.classification_args.validation_set_size)
 
         # Initial evaluation
@@ -273,7 +278,12 @@ class ActiveLearningRun(object):
             self.x_ind_init = get_initial_indices(train_set, strategy, num_samples)
 
         y_train = train_set.y
-        y_init = np.array([y_train[i] for i in self.x_ind_init])
+        if isinstance(y_train, csr_matrix):
+            y_init = y_train[self.x_ind_init[0]]
+            for i in self.x_ind_init[1:]:
+                y_init = vstack([y_init, y_train[i]])
+        else:
+            y_init = np.array([y_train[i] for i in self.x_ind_init])
         active_learner.initialize_data(self.x_ind_init, y_init, retrain=False)
 
         if isinstance(active_learner.classifier, PytorchClassifier):
@@ -363,6 +373,7 @@ class ActiveLearningRun(object):
         else:
             x_indices_validation = get_validation_set(
                 train_set[indices_labeled_and_update].y,
+                strategy=self.dataset_config.dataset_kwargs['sampling_strategy'],
                 validation_set_size=self.classification_args.validation_set_size
             )
 
@@ -477,6 +488,7 @@ def get_initial_indices(train_set, initialization_strategy, num_samples):
         from small_text.initialization import random_initialization_stratified
         y_train = train_set.y
         indices_initial = random_initialization_stratified(y_train, n_samples=num_samples)
+    # TODO : implement a balanced sampling for multilabel classification
     elif initialization_strategy == 'balanced':
         from small_text.initialization import random_initialization_balanced
         y_train = train_set.y

@@ -12,6 +12,7 @@
     "validation_set_size": 0.1,
     "classifier_kwargs":{
       "incremental_training": true,
+      "multi_label": true,
       "linearsvc_kwargs":{
         "C": 1.0
       }
@@ -19,15 +20,16 @@
   },
 
   "dataset": {
-    "dataset_name" :"cr",
+    "dataset_name" :"go_emotions",
     "dataset_kwargs": {
-      "dataset_type": "bow"
+      "dataset_type": "bow",
+      "sampling_strategy": "multilabel"
     }
   },
   "active_learner": {
     "num_queries": 2,
     "query_size": 25,
-    "query_strategy": "lc",
+    "query_strategy": "rd",
     "initialization_strategy": "srandom",
     "initialization_strategy_kwargs":{
       "num_instances": 25
