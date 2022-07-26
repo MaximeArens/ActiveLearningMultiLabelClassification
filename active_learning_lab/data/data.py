@@ -14,7 +14,6 @@ from small_text.utils.labels import list_to_csr
 from sklearn.preprocessing import MultiLabelBinarizer
 import pandas as pd
 
-
 TEST_SET_RATIO_DEFAULT = 0.1
 
 
@@ -142,7 +141,6 @@ def load_dataset(dataset, dataset_kwargs, classifier_name, classifier_kwargs, da
 
 
 def get_dataset_type(classifier_name, dataset_kwargs, dataset_type):
-
     if 'dataset_type' in dataset_kwargs:
         dataset_type_expected = DataSetType.from_str(dataset_kwargs['dataset_type'])
     elif dataset_type is not None:
@@ -157,7 +155,6 @@ def get_dataset_type(classifier_name, dataset_kwargs, dataset_type):
 
 
 def get_dataset_type_for_classifier(classifier_name):
-
     if classifier_name == 'svm':
         return DataSetType.BOW
     elif classifier_name == 'kimcnn':
@@ -183,13 +180,13 @@ def create_labels_column(dataset):
     y_test = list_to_csr(labels_train, shape=len(labels_train))
     # From different label column such as (label1, 1) ; (label2, 0) ; (label3,1)
     # to one label column such as ['label1', 'label3']
-    #labels_train = list(dataset_train.iloc[:, 1:].dot(dataset_train.columns[1:] + ',').str[:-1].str.split(',').array)
-    #labels_test = list(dataset_test.iloc[:, 1:].dot(dataset_test.columns[1:] + ',').str[:-1].str.split(',').array)
+    # labels_train = list(dataset_train.iloc[:, 1:].dot(dataset_train.columns[1:] + ',').str[:-1].str.split(',').array)
+    # labels_test = list(dataset_test.iloc[:, 1:].dot(dataset_test.columns[1:] + ',').str[:-1].str.split(',').array)
 
     # From one label column such as ['label1', 'label3']
     # to one label column such as [1, 0, 1]
-    #mlb = MultiLabelBinarizer(classes=dataset_train.columns[1:], sparse_output=True)
-    #labels_train = mlb.fit_transform(labels_train)
+    # mlb = MultiLabelBinarizer(classes=dataset_train.columns[1:], sparse_output=True)
+    # labels_train = mlb.fit_transform(labels_train)
 
     dataset['train'] = dataset['train'].add_column('labels', labels_train)
     dataset['test'] = dataset['test'].add_column('labels', labels_test)
@@ -199,11 +196,10 @@ def create_labels_column(dataset):
 
 def _load_dataset(dataset, dataset_type, dataset_kwargs, classifier_kwargs,
                   test_set_ratio=TEST_SET_RATIO_DEFAULT):
-
     if dataset == DataSets.JIGSAW:
         return _load_jigsaw(dataset, dataset_type, dataset_kwargs, classifier_kwargs)
     elif dataset == DataSets.GO_EMOTIONS:
-         return _load_go_emotions(dataset, dataset_type, dataset_kwargs, classifier_kwargs)
+        return _load_go_emotions(dataset, dataset_type, dataset_kwargs, classifier_kwargs)
     # elif dataset == DataSets.CR:
     #     return _load_cr(dataset, dataset_type, dataset_kwargs, classifier_kwargs,
     #                     test_set_ratio=test_set_ratio)
@@ -269,7 +265,8 @@ def _load_go_emotions(dataset, dataset_type, dataset_kwargs, classifier_kwargs):
         return _text_to_bow(go_emotions_dataset['train']['text'],
                             go_emotions_dataset['train']['labels'],
                             go_emotions_dataset['test']['text'],
-                            go_emotions_dataset['test']['labels'])
+                            go_emotions_dataset['test']['labels'],
+                            num_labels=28)
     elif dataset_type == DataSetType.RAW:
         return RawDataset(go_emotions_dataset['train']['text'],
                           go_emotions_dataset['train']['labels']), \
@@ -297,27 +294,32 @@ def _create_bow_preprocessor(preprocessor):
             SklearnDataset(normalize(result['x_test']), result['y_test']))
 
 
-def _text_to_bow(x, y, x_test, y_test, max_features=50000, ngram_range=(1, 2)):
+def _text_to_bow(x, y, x_test, y_test, num_labels, max_features=50000, ngram_range=(1, 2)):
     from sklearn.feature_extraction.text import TfidfVectorizer
 
     vectorizer = TfidfVectorizer(max_features=max_features, ngram_range=ngram_range)
+    #
+    # x = vectorizer.fit_transform(x)
+    # x_test = vectorizer.transform(x_test)
+    #
+    # return (SklearnDataset(normalize(x), np.array(y)),
+    #         SklearnDataset(normalize(x_test), np.array(y_test)))
+    x_train = normalize(vectorizer.fit_transform(x))
+    x_test = normalize(vectorizer.transform(x_test))
 
-    x = vectorizer.fit_transform(x)
-    x_test = vectorizer.transform(x_test)
+    y_train = list_to_csr(y, shape=(len(y), num_labels))
+    y_test = list_to_csr(y_test, shape=(len(y_test), num_labels))
 
-    return (SklearnDataset(normalize(x), np.array(y)),
-            SklearnDataset(normalize(x_test), np.array(y_test)))
+    return SklearnDataset(x_train, y_train), SklearnDataset(x_test, y_test)
 
 
 def _text_to_transformers_dataset(tokenizer, train_text, train_labels, test_text,
                                   test_labels, max_length, multi_label):
-
     return _transformers_prepare(tokenizer, train_text, train_labels, multi_label, max_length=max_length), \
            _transformers_prepare(tokenizer, test_text, test_labels, multi_label, max_length=max_length)
 
 
 def _transformers_prepare(tokenizer, data, labels, multi_label, max_length=60):
-
     data_out = []
     for i, doc in enumerate(data):
         encoded_dict = tokenizer.encode_plus(
@@ -375,12 +377,15 @@ def _tt_dataset_to_text_classification_dataset(dataset, multilabel):
     unk_token_idx = 1
 
     vocab = dataset.fields['text'].vocab
+    labels = list(set(dataset.fields['label'].vocab.itos))
+    labels = np.array(labels)
 
-    data = [
-        (torch.LongTensor([vocab.stoi[token] if token in vocab.stoi else unk_token_idx
-                           for token in example.text]),
-         dataset.fields['label'].vocab.stoi[example.label])
-        for example in dataset.examples
-    ]
+    data = []
+    for example in dataset.examples:
+        label_list = []
+        for label in example.label:
+            label_list.append(dataset.fields['label'].vocab.stoi[label])
+        data.append((torch.LongTensor([vocab.stoi[token] if token in vocab.stoi else unk_token_idx
+                                       for token in example.text]), label_list))
 
-    return PytorchTextClassificationDataset(data, vocab, multilabel=multilabel)
+    return PytorchTextClassificationDataset(data, vocab, multi_label=multilabel, target_labels=labels)

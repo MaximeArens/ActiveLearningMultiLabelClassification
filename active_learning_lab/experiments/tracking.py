@@ -74,6 +74,7 @@ class MetricsTracker(object):
         if y_pred.shape[0] == 0:
             return [MetricsTracker.NO_VALUE] * 8
         else:
+            y_pred_probas = csr_matrix.toarray(y_pred_probas)
             y_pred_probas = np.amax(y_pred_probas, axis=1)
             return [
                 accuracy_score(y_true, y_pred),
