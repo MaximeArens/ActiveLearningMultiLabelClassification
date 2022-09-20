@@ -93,7 +93,7 @@ if __name__ == '__main__':
     #args = parser.parse_args(arg_list)
     classifier_config = arg_list[0]
 
-    with open('..\config\\' + classifier_config) as json_file:
+    with open('../config/' + classifier_config) as json_file:
         args = json.load(json_file)
         args['active_learner']['query_strategy'] = arg_list[1]
         args['dataset']['dataset_name'] = arg_list[2]
