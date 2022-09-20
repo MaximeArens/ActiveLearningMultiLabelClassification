@@ -27,13 +27,16 @@ def _build_embedding_matrix_from_keyedvectors(pretrained_vectors, vocab, min_fre
     ]
     num_special_vectors = len(vectors)
     vectors += [
-        pretrained_vectors.vectors[pretrained_vectors.wv.key_to_index[vocab.itos[i]]]
-        if vocab.itos[i] in pretrained_vectors.wv.key_to_index
+        # pretrained_vectors.vectors[pretrained_vectors.wv.key_to_index[vocab.itos[i]]]
+        pretrained_vectors.vectors[pretrained_vectors.vocab[vocab.itos[i]].index]
+        if vocab.itos[i] in pretrained_vectors.vocab
+        #if vocab.itos[i] in pretrained_vectors.wv.key_to_index
         else np.zeros(pretrained_vectors.vectors.shape[1])
         for i in range(num_special_vectors, len(vocab))
     ]
     for i in range(num_special_vectors, len(vocab)):
-        if vocab.itos[i] not in pretrained_vectors.wv.key_to_index and vocab.freqs[vocab.itos[i]] >= min_freq:
+        #if vocab.itos[i] not in pretrained_vectors.wv.key_to_index and vocab.freqs[vocab.itos[i]] >= min_freq:
+        if vocab.itos[i] not in pretrained_vectors.vocab and vocab.freqs[vocab.itos[i]] >= min_freq:
             vectors[i] = np.random.uniform(-0.25, 0.25, pretrained_vectors.vectors.shape[1])
 
     return torch.as_tensor(np.stack(vectors))

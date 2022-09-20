@@ -1,7 +1,7 @@
 import tempfile
 import types
 
-import numpy as np
+import torch
 
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import _LRScheduler, LambdaLR
@@ -19,7 +19,7 @@ from small_text.utils.system import get_tmp_dir_base
 # suppresses an unnecessary log warning that was shown in small-text v1.0.0a8
 def _fit_main(self, sub_train, sub_valid, optimizer, scheduler):
     if self.model is None:
-        encountered_num_classes = get_num_labels(sub_train.y)
+        encountered_num_classes = self.num_classes #get_num_labels(sub_train.y)
 
         if self.num_classes is None:
             self.num_classes = encountered_num_classes
@@ -145,4 +145,8 @@ class TransformerBasedClassificationExtendedFactory(TransformerBasedClassificati
         clf.multi_label = self.kwargs['multi_label']
         clf._fit_main = types.MethodType(_fit_main, clf)
         self.kwargs['scheduler'] = scheduler
+        if torch.cuda.is_available():
+            self.kwargs['device'] = torch.device('cuda')
+        else:
+            self.kwargs['device'] = torch.device('cpu')
         return clf

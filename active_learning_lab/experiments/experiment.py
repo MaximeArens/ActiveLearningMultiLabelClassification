@@ -79,11 +79,12 @@ class ActiveLearningExperimentResult(object):
 
 class ActiveLearningExperiment(object):
 
-    def __init__(self, exp_cfg, classification_cfg, dataset_config, initialization_strategy,
+    def __init__(self, experiment_name, exp_cfg, classification_cfg, dataset_config, initialization_strategy,
                  initialization_strategy_kwargs, train, tmp_dir, query_strategy=None,
                  query_strategy_kwargs=dict(),
                  shared_initialization=True, gpu=None):
 
+        self.experiment_name = experiment_name
         self.classification_args = classification_cfg
 
         if isinstance(train.y, csr_matrix):
@@ -172,7 +173,8 @@ class ActiveLearningExperiment(object):
             free_resources_fix()
 
     def _post_experiment(self, artifacts):
-
+        path = '..\\..\\' + self.experiment_name + '.csv'
+        self.metrics_tracker.write('mlruns/' + self.experiment_name + '.csv')
         results_file = self.metrics_tracker.write(self.tmp_dir.joinpath('results.csv').resolve())
         results_agg_file = self.metrics_tracker.write_aggregate(
             self.tmp_dir.joinpath('results_agg.csv').resolve())

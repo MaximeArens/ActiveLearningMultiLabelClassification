@@ -1,0 +1,43 @@
+
+{
+  "experiment_name": "svm",
+  "general":{
+    "runs": 5,
+    "seed": 1003,
+    "description": "Config for test SVM, CR dataset and random sampling for query strategy",
+    "max_reproducibility": null
+  },
+  "classifier":{
+    "classifier_name": "svm",
+    "validation_set_size": 0.1,
+    "classifier_kwargs":{
+      "incremental_training": true,
+      "multi_label": true,
+      "linearsvc_kwargs":{
+        "C": 1.0
+      }
+    }
+  },
+
+  "dataset": {
+    "dataset_name" :"jigsaw",
+    "dataset_kwargs": {
+      "dataset_type": "bow",
+      "sampling_strategy": "multilabel"
+    }
+  },
+  "active_learner": {
+    "num_queries": 100,
+    "query_size": 25,
+    "query_strategy": "rd",
+    "initialization_strategy": "srandom",
+    "initialization_strategy_kwargs":{
+      "num_instances": 25
+    },
+    "query_strategy_kwargs":{
+
+    }
+  }
+
+
+}

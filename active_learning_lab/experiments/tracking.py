@@ -5,16 +5,16 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, hamming_loss, label_ranking_loss
 from active_learning_lab.utils.calibration import expected_calibration_error
 from scipy.sparse import csr_matrix
 from small_text.utils.labels import csr_to_list
 
 METRIC_COLUMNS = [
     'train_acc', 'train_micro_precision', 'train_micro_recall', 'train_micro_f1',
-    'train_macro_precision', 'train_macro_recall', 'train_macro_f1', 'train_ece_10',
-    'test_acc', 'test_micro_precision', 'test_micro_recall', 'test_micro_f1',
-    'test_macro_precision', 'test_macro_recall', 'test_macro_f1', 'test_ece_10'
+    'train_macro_precision', 'train_macro_recall', 'train_macro_f1', 'train_ranking_loss', 'train_hamming_loss',
+    'train_ece_10', 'test_acc', 'test_micro_precision', 'test_micro_recall', 'test_micro_f1', 'test_macro_precision',
+    'test_macro_recall', 'test_macro_f1', 'test_ranking_loss', 'test_hamming_loss', 'test_ece_10'
 ]
 
 COLUMNS = ['run_id', 'query_id', 'num_samples', 'query_time_sec', 'update_time_sec'] + \
@@ -74,7 +74,8 @@ class MetricsTracker(object):
         if y_pred.shape[0] == 0:
             return [MetricsTracker.NO_VALUE] * 8
         else:
-            y_pred_probas = csr_matrix.toarray(y_pred_probas)
+            if isinstance(y_pred_probas, csr_matrix) :
+                y_pred_probas = csr_matrix.toarray(y_pred_probas)
             y_pred_probas = np.amax(y_pred_probas, axis=1)
             return [
                 accuracy_score(y_true, y_pred),
@@ -84,6 +85,8 @@ class MetricsTracker(object):
                 precision_score(y_true, y_pred, average='macro'),
                 recall_score(y_true, y_pred, average='macro'),
                 f1_score(y_true, y_pred, average='macro'),
+                label_ranking_loss(y_true, csr_matrix.toarray(y_pred)),
+                hamming_loss(y_true, y_pred),
                 expected_calibration_error(y_pred, y_pred_probas, y_true)
             ]
 

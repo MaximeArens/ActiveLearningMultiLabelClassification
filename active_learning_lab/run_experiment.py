@@ -1,7 +1,10 @@
-import re
 import sys
-import json
+sys.path.append("C:\\Users\\Maxime\\Documents\\Synapse\\RetD\\Scripts\\ActiveLearningMultiLabelClassification")
 
+import re
+
+import json
+import ast
 import mlflow
 
 from contextlib import closing
@@ -39,7 +42,7 @@ def main(args, experiment_name):
                 write_experiment_info(logger, mlflow, experiment_name)
 
                 builder = get_active_learner_builder(args, tmp_dir)
-                exp = builder.build()
+                exp = builder.build(experiment_name)
 
                 # [!] This is the entry point to the actual experiment
                 results = exp.run(builder.train, builder.test)
@@ -84,31 +87,34 @@ def process_results(al_exp, results):
 
 if __name__ == '__main__':
     arg_list = sys.argv
-    del arg_list[0]
+
     del arg_list[0]
     # parser = get_parser()
     #args = parser.parse_args(arg_list)
+    classifier_config = arg_list[0]
 
-    with open('..\config\\' + arg_list[0] + '.json') as json_file:
+    with open('..\config\\' + classifier_config) as json_file:
         args = json.load(json_file)
+        args['active_learner']['query_strategy'] = arg_list[1]
+        args['dataset']['dataset_name'] = arg_list[2]
 
     suppress_known_thirdparty_warnings()
     set_random_seed(args['general']['seed'], args['general']['max_reproducibility'])
 
     client = mlflow.tracking.MlflowClient()
 
-    experiment_name = args['experiment_name']
-    #experiment = mlflow.get_experiment_by_name(experiment_name) \
+    experiment_name = args['experiment_name'] + "_" + args['dataset']['dataset_name'] + "_" +  args['active_learner']['query_strategy']
+        #experiment = mlflow.get_experiment_by_name(experiment_name) \
     experiment = mlflow.set_experiment(experiment_name)
     if experiment is None:
         raise ValueError('No mlflow experiments with name \'{}\' exists. '
-                         'Please create the experiment first.'.format(experiment_name))
+                             'Please create the experiment first.'.format(experiment_name))
 
     with mlflow.start_run(experiment_id=experiment.experiment_id):
         mlflow.log_param('experiment_name', experiment_name)
         mlflow.log_param('classifier_name', args['classifier']['classifier_name'])
         classifier_pretrained_model = args['classifier']['classifier_kwargs']['transformer_model'] \
-            if args['classifier']['classifier_name'] == 'transformer' else ''
+        if args['classifier']['classifier_name'] == 'transformer' else ''
         mlflow.log_param('classifier_pretrained_model', classifier_pretrained_model)
         mlflow.log_param('dataset_name', args['dataset']['dataset_name'])
         mlflow.log_param('query_strategy', args['active_learner']['query_strategy'])

@@ -2,8 +2,7 @@
 /active_learning_lab/.active_learning_lib_cache
 /active_learning_lab/.transformers_cache
 /active_learning_lab/.data
-*/__pycache__
+__pycache__/
 /active_learning_lab/mlruns
 .active_learning_lib_cache/
 .cache
-active_learning_lab/data/__pycache__/

@@ -91,7 +91,7 @@ class ActiveLearningExperimentBuilder(object):
             self.initialization_strategy_kwargs = initialization_strategy_kwargs
         return self
 
-    def build(self):
+    def build(self, experiment_name):
         exp_args = ExperimentConfig(self.cv, self.num_queries, self.query_size)
 
         if self.classifier_factory is None:
@@ -112,7 +112,8 @@ class ActiveLearningExperimentBuilder(object):
                                                      incremental_training=self.incremental_training,
                                                      validation_set_size=self.validation_set_size)
 
-        return ActiveLearningExperiment(exp_args,
+        return ActiveLearningExperiment(experiment_name,
+                                        exp_args,
                                         classification_config,
                                         self.dataset_config,
                                         self.initialization_strategy,

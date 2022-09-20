@@ -12,7 +12,10 @@ def log_class_distribution(y, num_classes):
         y = csr_to_list(y)
     else:
         multilabel = False
-    logging.info(get_class_histogram(y, num_classes, normalize=False, multilabel=multilabel))
+    try:
+        logging.info(get_class_histogram(y, num_classes, normalize=False, multilabel=multilabel))
+    except:
+        logging.info('not all classes present during init')
 
 
 def log_run_info(run_id, run_max, len_train, len_test):

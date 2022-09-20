@@ -17,7 +17,7 @@
       "padding_idx": 1,
       "multi_label": true,
       "embedding_matrix": "word2vec",
-      "max_seq_len": 50,
+      "max_seq_len": 500,
       "num_epochs": 3
       }
     },
@@ -36,7 +36,7 @@
     "query_strategy": "rd",
     "initialization_strategy": "srandom",
     "initialization_strategy_kwargs":{
-      "num_instances": 1000
+      "num_instances": 25
     },
     "query_strategy_kwargs":{
 

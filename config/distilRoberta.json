@@ -1,0 +1,42 @@
+{
+  "experiment_name": "distilRoberta",
+  "general": {
+    "runs": 5,
+    "seed": 1003,
+    "description": "Config for test distil_RoBerta, CR dataset and random sampling for query strategy",
+    "max_reproducibility": null
+  },
+  "classifier": {
+    "classifier_name": "transformer",
+    "validation_set_size": 0.1,
+    "classifier_kwargs": {
+      "transformer_model": "distilroberta-base",
+      "mini_batch_size": 12,
+      "lr": 0.00002,
+      "incremental_training": true,
+      "scheduler": "slanted",
+      "multi_label": true,
+      "layerwise_gradient_decay": 0.95,
+      "num_epochs": 15
+    }
+  },
+  "dataset": {
+    "dataset_name": "jigsaw",
+    "dataset_kwargs": {
+      "dataset_type": "transformers",
+      "sampling_strategy": "multilabel",
+      "max_length": 512
+    }
+  },
+  "active_learner": {
+    "num_queries": 50,
+    "query_size": 25,
+    "query_strategy": "rd",
+    "initialization_strategy": "srandom",
+    "initialization_strategy_kwargs": {
+      "num_instances": 25
+    },
+    "query_strategy_kwargs": {
+    }
+  }
+}

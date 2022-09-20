@@ -20,19 +20,19 @@
   },
 
   "dataset": {
-    "dataset_name" :"go_emotions",
+    "dataset_name" :"jigsaw",
     "dataset_kwargs": {
       "dataset_type": "bow",
       "sampling_strategy": "multilabel"
     }
   },
   "active_learner": {
-    "num_queries": 2,
+    "num_queries": 1,
     "query_size": 25,
-    "query_strategy": "rd",
+    "query_strategy": "cmn",
     "initialization_strategy": "srandom",
     "initialization_strategy_kwargs":{
-      "num_instances": 1000
+      "num_instances": 25
     },
     "query_strategy_kwargs":{
 

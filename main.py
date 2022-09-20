@@ -31,8 +31,10 @@ except ImportError:
     raise ActiveLearnerException('This example requires the "datasets" library. '
                                  'Please install datasets to run this example.')
 
+
 def get_train_test():
     return get_go_emotions_dataset()
+
 
 def main(num_iterations=10):
     # Active learning parameters
