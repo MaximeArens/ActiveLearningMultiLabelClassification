@@ -2,7 +2,9 @@ import sys
 sys.path.append("C:\\Users\\Maxime\\Documents\\Synapse\\RetD\\Scripts\\ActiveLearningMultiLabelClassification")
 
 import re
-
+import os
+import inspect
+import torch
 import json
 import ast
 import mlflow
@@ -109,6 +111,23 @@ if __name__ == '__main__':
     if experiment is None:
         raise ValueError('No mlflow experiments with name \'{}\' exists. '
                              'Please create the experiment first.'.format(experiment_name))
+
+    if torch.cuda.is_available():
+        # Find the location of the torch package
+        package_path = os.path.dirname(inspect.getfile(torch))
+        full_path = os.path.join(package_path, 'utils/data/sampler.py')
+        # Read in the file
+        with open(full_path, 'r') as file:
+            filedata = file.read()
+
+        # Replace the target string
+        filedata = filedata.replace('generator = torch.Generator()', 'generator = torch.Generator(device=\'cuda\')')
+        filedata = filedata.replace('yield from torch.randperm(n, generator=generator).tolist()',
+                                    'yield from torch.randperm(n, generator=generator, device=\'cuda\').tolist()')
+
+        # Write the file out again
+        with open(full_path, 'w') as file:
+            file.write(filedata)
 
     with mlflow.start_run(experiment_id=experiment.experiment_id):
         mlflow.log_param('experiment_name', experiment_name)
