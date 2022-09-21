@@ -270,7 +270,7 @@ class ActiveLearningRun(object):
         active_learner = PoolBasedActiveLearner(
             self.classification_args.classifier_factory,
             self.query_strategy,
-            train_set)
+            train_set, reuse_model=True)
             #incremental_training=self.classification_args.incremental_training)
 
         strategy = self.initialization_strategy
