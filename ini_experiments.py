@@ -9,3 +9,7 @@ if __name__ == '__main__':
         for m in models:
             for s in strategies:
                 experiment = mlflow.set_experiment(m + '_' + d + '_' + s)
+    for d in datasets:
+        for m in models:
+            for s in strategies:
+                experiment = mlflow.set_experiment(m + '_' + d + '_' + s + '_cpu')

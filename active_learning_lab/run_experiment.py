@@ -104,8 +104,12 @@ if __name__ == '__main__':
     set_random_seed(args['general']['seed'], args['general']['max_reproducibility'])
 
     client = mlflow.tracking.MlflowClient()
-
-    experiment_name = args['experiment_name'] + "_" + args['dataset']['dataset_name'] + "_" +  args['active_learner']['query_strategy']
+    if 'cpu' in arg_list:
+        experiment_name = args['experiment_name'] + "_" + args['dataset']['dataset_name'] + "_" +\
+                          args['active_learner']['query_strategy'] + '_cpu'
+    else:
+        experiment_name = args['experiment_name'] + "_" + args['dataset']['dataset_name'] + "_" + \
+                          args['active_learner']['query_strategy']
         #experiment = mlflow.get_experiment_by_name(experiment_name) \
     experiment = mlflow.set_experiment(experiment_name)
     if experiment is None:
