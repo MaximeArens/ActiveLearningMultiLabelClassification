@@ -331,7 +331,7 @@ def _load_eurlex(dataset, dataset_type, dataset_kwargs, classifier_kwargs):
                             eurlex_dataset['train']['labels'],
                             eurlex_dataset['test']['text'],
                             eurlex_dataset['test']['labels'],
-                            num_labels=100)
+                            num_labels=127)
     elif dataset_type == DataSetType.RAW:
         return RawDataset(eurlex_dataset['train']['text'],
                           eurlex_dataset['train']['labels'], \
@@ -341,73 +341,84 @@ def _load_eurlex(dataset, dataset_type, dataset_kwargs, classifier_kwargs):
         raise ValueError(f'Unsupported dataset type for dataset {str(dataset)}')
 
 
-def _load_ecthr_b(dataset, dataset_type, dataset_kwargs, classifier_kwargs):
-    import datasets
-    ecthr_b_dataset = datasets.load_dataset('lex_glue', 'ecthr_b')
-
-    if dataset_type == DataSetType.TRANSFORMERS:
-        tokenizer = _get_huggingface_tokenizer(classifier_kwargs)
-        return _text_to_transformers_dataset(tokenizer,
-                                             ecthr_b_dataset['train']['text'],
-                                             ecthr_b_dataset['train']['labels'],
-                                             ecthr_b_dataset['test']['text'],
-                                             ecthr_b_dataset['test']['labels'],
-                                             dataset_kwargs['max_length'],
-                                             multi_label=True)
-    elif dataset_type == DataSetType.TENSOR_PADDED_SEQ:
-        return _text_to_text_classification_dataset(
-            ecthr_b_dataset['train']['text'],
-            ecthr_b_dataset['train']['labels'],
-            ecthr_b_dataset['test']['text'],
-            ecthr_b_dataset['test']['labels'],
-            multilabel=True)
-    elif dataset_type == DataSetType.BOW:
-        return _text_to_bow(ecthr_b_dataset['train']['text'],
-                            ecthr_b_dataset['train']['labels'],
-                            ecthr_b_dataset['test']['text'],
-                            ecthr_b_dataset['test']['labels'],
-                            num_labels=10)
-    elif dataset_type == DataSetType.RAW:
-        return RawDataset(ecthr_b_dataset['train']['text'],
-                          ecthr_b_dataset['train']['labels'], \
-               RawDataset(ecthr_b_dataset['test']['text'],
-                          ecthr_b_dataset['test']['labels']))
-    else:
-        raise ValueError(f'Unsupported dataset type for dataset {str(dataset)}')
-
-
 def _load_ecthr_a(dataset, dataset_type, dataset_kwargs, classifier_kwargs):
     import datasets
-
     ecthr_a_dataset = datasets.load_dataset('lex_glue', 'ecthr_a')
+    train_text = []
+    test_text = []
+    for seq in ecthr_a_dataset['train']['text']:
+        train_text.append(' '.join(str(e) for e in seq))
+    for seq in ecthr_a_dataset['test']['labels']:
+        test_text.append(' '.join(str(e) for e in seq))
 
     if dataset_type == DataSetType.TRANSFORMERS:
         tokenizer = _get_huggingface_tokenizer(classifier_kwargs)
         return _text_to_transformers_dataset(tokenizer,
-                                             ecthr_a_dataset['train']['text'],
+                                             train_text,
                                              ecthr_a_dataset['train']['labels'],
-                                             ecthr_a_dataset['test']['text'],
+                                             test_text,
                                              ecthr_a_dataset['test']['labels'],
                                              dataset_kwargs['max_length'],
                                              multi_label=True)
     elif dataset_type == DataSetType.TENSOR_PADDED_SEQ:
         return _text_to_text_classification_dataset(
-            ecthr_a_dataset['train']['text'],
+            train_text,
             ecthr_a_dataset['train']['labels'],
-            ecthr_a_dataset['test']['text'],
+            test_text,
             ecthr_a_dataset['test']['labels'],
             multilabel=True)
     elif dataset_type == DataSetType.BOW:
-        return _text_to_bow(ecthr_a_dataset['train']['text'],
+        return _text_to_bow(train_text,
                             ecthr_a_dataset['train']['labels'],
-                            ecthr_a_dataset['test']['text'],
+                            test_text,
                             ecthr_a_dataset['test']['labels'],
                             num_labels=10)
     elif dataset_type == DataSetType.RAW:
-        return RawDataset(ecthr_a_dataset['train']['text'],
+        return RawDataset(train_text,
                           ecthr_a_dataset['train']['labels'], \
-               RawDataset(ecthr_a_dataset['test']['text'],
+               RawDataset(test_text,
                           ecthr_a_dataset['test']['labels']))
+    else:
+        raise ValueError(f'Unsupported dataset type for dataset {str(dataset)}')
+
+
+def _load_ecthr_b(dataset, dataset_type, dataset_kwargs, classifier_kwargs):
+    import datasets
+    ecthr_b_dataset = datasets.load_dataset('lex_glue', 'ecthr_b')
+    train_text = []
+    test_text = []
+    for seq in ecthr_b_dataset['train']['text']:
+        train_text.append(' '.join(str(e) for e in seq))
+    for seq in ecthr_b_dataset['test']['labels']:
+        test_text.append(' '.join(str(e) for e in seq))
+
+    if dataset_type == DataSetType.TRANSFORMERS:
+        tokenizer = _get_huggingface_tokenizer(classifier_kwargs)
+        return _text_to_transformers_dataset(tokenizer,
+                                             train_text,
+                                             ecthr_b_dataset['train']['labels'],
+                                             test_text,
+                                             ecthr_b_dataset['test']['labels'],
+                                             dataset_kwargs['max_length'],
+                                             multi_label=True)
+    elif dataset_type == DataSetType.TENSOR_PADDED_SEQ:
+        return _text_to_text_classification_dataset(
+            train_text,
+            ecthr_b_dataset['train']['labels'],
+            test_text,
+            ecthr_b_dataset['test']['labels'],
+            multilabel=True)
+    elif dataset_type == DataSetType.BOW:
+        return _text_to_bow(train_text,
+                            ecthr_b_dataset['train']['labels'],
+                            test_text,
+                            ecthr_b_dataset['test']['labels'],
+                            num_labels=10)
+    elif dataset_type == DataSetType.RAW:
+        return RawDataset(train_text,
+                          ecthr_b_dataset['train']['labels'], \
+               RawDataset(test_text,
+                          ecthr_b_dataset['test']['labels']))
     else:
         raise ValueError(f'Unsupported dataset type for dataset {str(dataset)}')
 
