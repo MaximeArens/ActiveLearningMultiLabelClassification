@@ -4,7 +4,7 @@ import datasets
 import numpy as np
 
 from enum import Enum
-
+from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import normalize
 from small_text.data.datasets import SklearnDataset
 from small_text.integrations.pytorch.datasets import PytorchTextClassificationDataset
@@ -22,6 +22,11 @@ TEST_SET_RATIO_DEFAULT = 0.1
 class DataSets(Enum):
     JIGSAW = 'jigsaw'
     GO_EMOTIONS = 'go_emotions'
+    ECTHRA = 'ecthr_a'
+    ECTHRB = 'ecthr_b'
+    EURLEX = 'eur_lex'
+    UNFAIRTOS = 'unfair_tos'
+    NEWSGROUPS = '20_news'
 
     @staticmethod
     def from_str(enum_str):
@@ -29,6 +34,16 @@ class DataSets(Enum):
             return DataSets.JIGSAW
         if enum_str == 'go_emotions':
             return DataSets.GO_EMOTIONS
+        if enum_str == 'ecthr_a':
+            return DataSets.ECTHRA
+        if enum_str == 'ecthr_b':
+            return DataSets.ECTHRB
+        if enum_str == 'eur_lex':
+            return DataSets.EURLEX
+        if enum_str == 'unfair_tos':
+            return DataSets.UNFAIRTOS
+        if enum_str == '20_news':
+            return DataSets.NEWSGROUPS
 
         raise ValueError('Enum DataSets does not contain the given element: '
                          '\'{}\''.format(enum_str))
@@ -202,6 +217,16 @@ def _load_dataset(dataset, dataset_type, dataset_kwargs, classifier_kwargs,
         return _load_jigsaw(dataset, dataset_type, dataset_kwargs, classifier_kwargs)
     elif dataset == DataSets.GO_EMOTIONS:
         return _load_go_emotions(dataset, dataset_type, dataset_kwargs, classifier_kwargs)
+    elif dataset == DataSets.EURLEX:
+        return _load_eurlex(dataset, dataset_type, dataset_kwargs, classifier_kwargs)
+    elif dataset == DataSets.ECTHRA:
+        return _load_ecthr_a(dataset, dataset_type, dataset_kwargs, classifier_kwargs)
+    elif dataset == DataSets.ECTHRB:
+        return _load_ecthr_b(dataset, dataset_type, dataset_kwargs, classifier_kwargs)
+    elif dataset == DataSets.UNFAIRTOS:
+        return _load_unfair_tos(dataset, dataset_type, dataset_kwargs, classifier_kwargs)
+    elif dataset == DataSets.NEWSGROUPS:
+        return _load_newsgroups(dataset, dataset_type, dataset_kwargs, classifier_kwargs)
     # elif dataset == DataSets.CR:
     #     return _load_cr(dataset, dataset_type, dataset_kwargs, classifier_kwargs,
     #                     test_set_ratio=test_set_ratio)
@@ -277,6 +302,184 @@ def _load_go_emotions(dataset, dataset_type, dataset_kwargs, classifier_kwargs):
                           remove_neutral(go_emotions_dataset['train']['labels']), \
                RawDataset(go_emotions_dataset['test']['text'],
                           remove_neutral(go_emotions_dataset['test']['labels'])))
+    else:
+        raise ValueError(f'Unsupported dataset type for dataset {str(dataset)}')
+
+
+def _load_eurlex(dataset, dataset_type, dataset_kwargs, classifier_kwargs):
+    import datasets
+    eurlex_dataset = datasets.load_dataset('lex_glue', 'eurlex')
+
+    if dataset_type == DataSetType.TRANSFORMERS:
+        tokenizer = _get_huggingface_tokenizer(classifier_kwargs)
+        return _text_to_transformers_dataset(tokenizer,
+                                             eurlex_dataset['train']['text'],
+                                             eurlex_dataset['train']['labels'],
+                                             eurlex_dataset['test']['text'],
+                                             eurlex_dataset['test']['labels'],
+                                             dataset_kwargs['max_length'],
+                                             multi_label=True)
+    elif dataset_type == DataSetType.TENSOR_PADDED_SEQ:
+        return _text_to_text_classification_dataset(
+            eurlex_dataset['train']['text'],
+            eurlex_dataset['train']['labels'],
+            eurlex_dataset['test']['text'],
+            eurlex_dataset['test']['labels'],
+            multilabel=True)
+    elif dataset_type == DataSetType.BOW:
+        return _text_to_bow(eurlex_dataset['train']['text'],
+                            eurlex_dataset['train']['labels'],
+                            eurlex_dataset['test']['text'],
+                            eurlex_dataset['test']['labels'],
+                            num_labels=100)
+    elif dataset_type == DataSetType.RAW:
+        return RawDataset(eurlex_dataset['train']['text'],
+                          eurlex_dataset['train']['labels'], \
+               RawDataset(eurlex_dataset['test']['text'],
+                          eurlex_dataset['test']['labels']))
+    else:
+        raise ValueError(f'Unsupported dataset type for dataset {str(dataset)}')
+
+
+def _load_ecthr_b(dataset, dataset_type, dataset_kwargs, classifier_kwargs):
+    import datasets
+    ecthr_b_dataset = datasets.load_dataset('lex_glue', 'ecthr_b')
+
+    if dataset_type == DataSetType.TRANSFORMERS:
+        tokenizer = _get_huggingface_tokenizer(classifier_kwargs)
+        return _text_to_transformers_dataset(tokenizer,
+                                             ecthr_b_dataset['train']['text'],
+                                             ecthr_b_dataset['train']['labels'],
+                                             ecthr_b_dataset['test']['text'],
+                                             ecthr_b_dataset['test']['labels'],
+                                             dataset_kwargs['max_length'],
+                                             multi_label=True)
+    elif dataset_type == DataSetType.TENSOR_PADDED_SEQ:
+        return _text_to_text_classification_dataset(
+            ecthr_b_dataset['train']['text'],
+            ecthr_b_dataset['train']['labels'],
+            ecthr_b_dataset['test']['text'],
+            ecthr_b_dataset['test']['labels'],
+            multilabel=True)
+    elif dataset_type == DataSetType.BOW:
+        return _text_to_bow(ecthr_b_dataset['train']['text'],
+                            ecthr_b_dataset['train']['labels'],
+                            ecthr_b_dataset['test']['text'],
+                            ecthr_b_dataset['test']['labels'],
+                            num_labels=10)
+    elif dataset_type == DataSetType.RAW:
+        return RawDataset(ecthr_b_dataset['train']['text'],
+                          ecthr_b_dataset['train']['labels'], \
+               RawDataset(ecthr_b_dataset['test']['text'],
+                          ecthr_b_dataset['test']['labels']))
+    else:
+        raise ValueError(f'Unsupported dataset type for dataset {str(dataset)}')
+
+
+def _load_ecthr_a(dataset, dataset_type, dataset_kwargs, classifier_kwargs):
+    import datasets
+
+    ecthr_a_dataset = datasets.load_dataset('lex_glue', 'ecthr_a')
+
+    if dataset_type == DataSetType.TRANSFORMERS:
+        tokenizer = _get_huggingface_tokenizer(classifier_kwargs)
+        return _text_to_transformers_dataset(tokenizer,
+                                             ecthr_a_dataset['train']['text'],
+                                             ecthr_a_dataset['train']['labels'],
+                                             ecthr_a_dataset['test']['text'],
+                                             ecthr_a_dataset['test']['labels'],
+                                             dataset_kwargs['max_length'],
+                                             multi_label=True)
+    elif dataset_type == DataSetType.TENSOR_PADDED_SEQ:
+        return _text_to_text_classification_dataset(
+            ecthr_a_dataset['train']['text'],
+            ecthr_a_dataset['train']['labels'],
+            ecthr_a_dataset['test']['text'],
+            ecthr_a_dataset['test']['labels'],
+            multilabel=True)
+    elif dataset_type == DataSetType.BOW:
+        return _text_to_bow(ecthr_a_dataset['train']['text'],
+                            ecthr_a_dataset['train']['labels'],
+                            ecthr_a_dataset['test']['text'],
+                            ecthr_a_dataset['test']['labels'],
+                            num_labels=10)
+    elif dataset_type == DataSetType.RAW:
+        return RawDataset(ecthr_a_dataset['train']['text'],
+                          ecthr_a_dataset['train']['labels'], \
+               RawDataset(ecthr_a_dataset['test']['text'],
+                          ecthr_a_dataset['test']['labels']))
+    else:
+        raise ValueError(f'Unsupported dataset type for dataset {str(dataset)}')
+
+
+def _load_unfair_tos(dataset, dataset_type, dataset_kwargs, classifier_kwargs):
+    import datasets
+    unfair_tos_dataset = datasets.load_dataset('lex_glue', 'unfair_tos')
+
+    if dataset_type == DataSetType.TRANSFORMERS:
+        tokenizer = _get_huggingface_tokenizer(classifier_kwargs)
+        return _text_to_transformers_dataset(tokenizer,
+                                             unfair_tos_dataset['train']['text'],
+                                             unfair_tos_dataset['train']['labels'],
+                                             unfair_tos_dataset['test']['text'],
+                                             unfair_tos_dataset['test']['labels'],
+                                             dataset_kwargs['max_length'],
+                                             multi_label=True)
+    elif dataset_type == DataSetType.TENSOR_PADDED_SEQ:
+        return _text_to_text_classification_dataset(
+            unfair_tos_dataset['train']['text'],
+            unfair_tos_dataset['train']['labels'],
+            unfair_tos_dataset['test']['text'],
+            unfair_tos_dataset['test']['labels'],
+            multilabel=True)
+    elif dataset_type == DataSetType.BOW:
+        return _text_to_bow(unfair_tos_dataset['train']['text'],
+                            unfair_tos_dataset['train']['labels'],
+                            unfair_tos_dataset['test']['text'],
+                            unfair_tos_dataset['test']['labels'],
+                            num_labels=8)
+    elif dataset_type == DataSetType.RAW:
+        return RawDataset(unfair_tos_dataset['train']['text'],
+                          unfair_tos_dataset['train']['labels'], \
+               RawDataset(unfair_tos_dataset['test']['text'],
+                          unfair_tos_dataset['test']['labels']))
+    else:
+        raise ValueError(f'Unsupported dataset type for dataset {str(dataset)}')
+
+
+def _load_newsgroups(dataset, dataset_type, dataset_kwargs, classifier_kwargs):
+    import datasets
+    news_dataset = datasets.load_dataset('SetFit/20_newsgroups')
+    test = news_dataset['train']['label']
+    labels_train, labels_test = get_numerical_labels_from_string(news_dataset['train']['label'],
+                                                                 news_dataset['test']['label'])
+    if dataset_type == DataSetType.TRANSFORMERS:
+        tokenizer = _get_huggingface_tokenizer(classifier_kwargs)
+        return _text_to_transformers_dataset(tokenizer,
+                                             news_dataset['train']['text'],
+                                             labels_train,
+                                             news_dataset['test']['text'],
+                                             labels_test,
+                                             dataset_kwargs['max_length'],
+                                             multi_label=True)
+    elif dataset_type == DataSetType.TENSOR_PADDED_SEQ:
+        return _text_to_text_classification_dataset(
+            news_dataset['train']['text'],
+            labels_train,
+            news_dataset['test']['text'],
+            labels_test,
+            multilabel=True)
+    elif dataset_type == DataSetType.BOW:
+        return _text_to_bow(news_dataset['train']['text'],
+                            labels_train,
+                            news_dataset['test']['text'],
+                            labels_test,
+                            num_labels=27)
+    elif dataset_type == DataSetType.RAW:
+        return RawDataset(news_dataset['train']['text'],
+                          labels_train, \
+               RawDataset(news_dataset['test']['text'],
+                          labels_test))
     else:
         raise ValueError(f'Unsupported dataset type for dataset {str(dataset)}')
 
@@ -404,3 +607,28 @@ def remove_neutral(labels_list):
         except:
             None
     return labels_list
+
+
+def get_numerical_labels_from_string(string_labels_list_train, string_labels_list_test):
+    string_labels_list = string_labels_list_train.copy()
+    string_labels_list.extend(string_labels_list_test)
+    flat_string_labels_list = []
+    for sublist in string_labels_list:
+        for item in sublist:
+            flat_string_labels_list.append(item)
+    unique_flat_string_labels_list = list(set(flat_string_labels_list))
+    le = LabelEncoder()
+    le.fit(unique_flat_string_labels_list)
+    train = []
+    test = []
+    for sublist in string_labels_list_train:
+        train.append(list(le.transform(sublist)))
+    for sublist in string_labels_list_test:
+        test.append(list(le.transform(sublist)))
+    return train, test
+
+
+
+
+
+
