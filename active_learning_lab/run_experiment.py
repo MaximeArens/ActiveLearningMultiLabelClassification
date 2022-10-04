@@ -95,52 +95,56 @@ if __name__ == '__main__':
     #args = parser.parse_args(arg_list)
     classifier_config = arg_list[0]
 
-    with open('../config/' + classifier_config) as json_file:
-        args = json.load(json_file)
-        args['active_learner']['query_strategy'] = arg_list[1]
-        args['dataset']['dataset_name'] = arg_list[2]
+    strategies = ['rd', 'ml', 'mml', 'cmn', 'cvirs', 'mmu', 'lci']
+    for strategy in strategies:
+        with open('../config/' + classifier_config) as json_file:
+            args = json.load(json_file)
+            #args['active_learner']['query_strategy'] = arg_list[1]
+            #args['dataset']['dataset_name'] = arg_list[2]
+            args['active_learner']['query_strategy'] = strategy
+            args['dataset']['dataset_name'] = arg_list[1]
 
-    suppress_known_thirdparty_warnings()
-    set_random_seed(args['general']['seed'], args['general']['max_reproducibility'])
+        suppress_known_thirdparty_warnings()
+        set_random_seed(args['general']['seed'], args['general']['max_reproducibility'])
 
-    client = mlflow.tracking.MlflowClient()
-    if 'cpu' in arg_list:
-        experiment_name = args['experiment_name'] + "_" + args['dataset']['dataset_name'] + "_" +\
-                          args['active_learner']['query_strategy'] + '_cpu'
-    else:
-        experiment_name = args['experiment_name'] + "_" + args['dataset']['dataset_name'] + "_" + \
-                          args['active_learner']['query_strategy']
-        #experiment = mlflow.get_experiment_by_name(experiment_name) \
-    experiment = mlflow.set_experiment(experiment_name)
-    if experiment is None:
-        raise ValueError('No mlflow experiments with name \'{}\' exists. '
-                             'Please create the experiment first.'.format(experiment_name))
+        client = mlflow.tracking.MlflowClient()
+        if 'cpu' in arg_list:
+            experiment_name = args['experiment_name'] + "_" + args['dataset']['dataset_name'] + "_" +\
+                              args['active_learner']['query_strategy'] + '_cpu'
+        else:
+            experiment_name = args['experiment_name'] + "_" + args['dataset']['dataset_name'] + "_" + \
+                              args['active_learner']['query_strategy']
+            #experiment = mlflow.get_experiment_by_name(experiment_name) \
+        experiment = mlflow.set_experiment(experiment_name)
+        if experiment is None:
+            raise ValueError('No mlflow experiments with name \'{}\' exists. '
+                                 'Please create the experiment first.'.format(experiment_name))
 
-    if torch.cuda.is_available():
-        # Find the location of the torch package
-        package_path = os.path.dirname(inspect.getfile(torch))
-        full_path = os.path.join(package_path, 'utils/data/sampler.py')
-        # Read in the file
-        with open(full_path, 'r') as file:
-            filedata = file.read()
+        if torch.cuda.is_available():
+            # Find the location of the torch package
+            package_path = os.path.dirname(inspect.getfile(torch))
+            full_path = os.path.join(package_path, 'utils/data/sampler.py')
+            # Read in the file
+            with open(full_path, 'r') as file:
+                filedata = file.read()
 
-        # Replace the target string
-        filedata = filedata.replace('generator = torch.Generator()', 'generator = torch.Generator(device=\'cuda\')')
-        filedata = filedata.replace('yield from torch.randperm(n, generator=generator).tolist()',
-                                    'yield from torch.randperm(n, generator=generator, device=\'cuda\').tolist()')
+            # Replace the target string
+            filedata = filedata.replace('generator = torch.Generator()', 'generator = torch.Generator(device=\'cuda\')')
+            filedata = filedata.replace('yield from torch.randperm(n, generator=generator).tolist()',
+                                        'yield from torch.randperm(n, generator=generator, device=\'cuda\').tolist()')
 
-        # Write the file out again
-        with open(full_path, 'w') as file:
-            file.write(filedata)
+            # Write the file out again
+            with open(full_path, 'w') as file:
+                file.write(filedata)
 
-    with mlflow.start_run(experiment_id=experiment.experiment_id):
-        mlflow.log_param('experiment_name', experiment_name)
-        mlflow.log_param('classifier_name', args['classifier']['classifier_name'])
-        classifier_pretrained_model = args['classifier']['classifier_kwargs']['transformer_model'] \
-        if args['classifier']['classifier_name'] == 'transformer' else ''
-        mlflow.log_param('classifier_pretrained_model', classifier_pretrained_model)
-        mlflow.log_param('dataset_name', args['dataset']['dataset_name'])
-        mlflow.log_param('query_strategy', args['active_learner']['query_strategy'])
-        mlflow.log_param('description', args['general']['description'])
+        with mlflow.start_run(experiment_id=experiment.experiment_id):
+            mlflow.log_param('experiment_name', experiment_name)
+            mlflow.log_param('classifier_name', args['classifier']['classifier_name'])
+            classifier_pretrained_model = args['classifier']['classifier_kwargs']['transformer_model'] \
+            if args['classifier']['classifier_name'] == 'transformer' else ''
+            mlflow.log_param('classifier_pretrained_model', classifier_pretrained_model)
+            mlflow.log_param('dataset_name', args['dataset']['dataset_name'])
+            mlflow.log_param('query_strategy', args['active_learner']['query_strategy'])
+            mlflow.log_param('description', args['general']['description'])
 
-        main(args, experiment_name)
+            main(args, experiment_name)
