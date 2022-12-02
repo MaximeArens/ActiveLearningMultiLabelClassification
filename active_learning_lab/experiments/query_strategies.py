@@ -46,6 +46,11 @@ def query_strategy_from_str(query_strategy_name, kwargs):
         strategy = LabelCardinalityInconsistency()
     elif query_strategy_name == 'cvirs':
         strategy = CategoryVectorInconsistencyAndRanking()
+    elif query_strategy_name == 'hrf':
+        strategy = HighReadabilityFirst()
+    elif query_strategy_name == 'pr':
+        strategy = ProgressiveReadability()
+
     else:
         raise ValueError(f'Unknown query strategy string: {query_strategy_name}')
 
@@ -54,6 +59,48 @@ def query_strategy_from_str(query_strategy_name, kwargs):
         strategy = SubsamplingQueryStrategy(strategy, subsample_size)
 
     return strategy
+
+
+class HighReadabilityFirst(QueryStrategy):
+    """Selects instances with better readability first."""
+
+    def query(self, clf, _dataset, indices_unlabeled, indices_labeled, y, n=10):
+        self._validate_query_input(indices_unlabeled, n)
+
+        readability = _dataset.readability
+        if len(indices_unlabeled) == n:
+            return np.array(indices_unlabeled)
+
+        indices_partitioned = np.argpartition(readability[indices_unlabeled], n)[:n]
+        return np.array([indices_unlabeled[i] for i in indices_partitioned])
+
+    def __str__(self):
+        return 'HighReadabilityFirst()'
+
+
+class ProgressiveReadability(QueryStrategy):
+    """Following curriculum learning principles selects instances from descending readability. Easiest examples to start
+    followed by more difficult ones and so on. """
+
+    def query(self, clf, _dataset, indices_unlabeled, indices_labeled, y, n=10):
+        self._validate_query_input(indices_unlabeled, n)
+
+        readability = _dataset.readability
+
+        if (len(indices_labeled) % 100) == 0:
+            if _dataset.readability[indices_labeled[len(indices_labeled)-1]] == _dataset.readability[indices_labeled[len(indices_labeled)-50]]:
+                for i in range(len(_dataset.readability)):
+                    if _dataset.readability[i] == _dataset.readability[indices_labeled[len(indices_labeled)-1]]:
+                        _dataset.readability[i] = _dataset.readability[i] + 1000
+
+        if len(indices_unlabeled) == n:
+            return np.array(indices_unlabeled)
+
+        indices_partitioned = np.argpartition(_dataset.readability[indices_unlabeled], n)[:n]
+        return np.array([indices_unlabeled[i] for i in indices_partitioned])
+
+    def __str__(self):
+        return 'ProgressiveReadability()'
 
 
 class MaxLoss(ConfidenceBasedQueryStrategy):

@@ -15,6 +15,8 @@ from datasets import DatasetDict
 from sklearn.preprocessing import MultiLabelBinarizer
 import pandas as pd
 import ast
+import textstat as ts
+
 
 TEST_SET_RATIO_DEFAULT = 0.1
 
@@ -529,13 +531,18 @@ def _text_to_bow(x, y, x_test, y_test, num_labels, max_features=50000, ngram_ran
     y_train = list_to_csr(y, shape=(len(y), num_labels))
     y_test = list_to_csr(y_test, shape=(len(y_test), num_labels))
 
-    return SklearnDataset(x_train, y_train), SklearnDataset(x_test, y_test)
+    train_dataset = SklearnDataset(x_train, y_train)
+    test_dataset = SklearnDataset(x_test, y_test)
+    train_dataset.readability = np.asarray([ts.text_standard(y, float_output=True) for y in x])
+    return train_dataset, test_dataset
 
 
 def _text_to_transformers_dataset(tokenizer, train_text, train_labels, test_text,
                                   test_labels, max_length, multi_label):
-    return _transformers_prepare(tokenizer, train_text, train_labels, multi_label, max_length=max_length), \
-           _transformers_prepare(tokenizer, test_text, test_labels, multi_label, max_length=max_length)
+    train_dataset = _transformers_prepare(tokenizer, train_text, train_labels, multi_label, max_length=max_length)
+    test_dataset = _transformers_prepare(tokenizer, test_text, test_labels, multi_label, max_length=max_length)
+    train_dataset.readability = np.asarray([ts.text_standard(x, float_output=True) for x in train_text])
+    return train_dataset, test_dataset
 
 
 def _transformers_prepare(tokenizer, data, labels, multi_label, max_length=60):
