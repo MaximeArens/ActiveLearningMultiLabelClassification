@@ -1,6 +1,6 @@
 import glob
 import logging
-
+import csv
 import mlflow
 import torch
 
@@ -233,7 +233,7 @@ class ActiveLearningRun(object):
 
         self.query_tracker = QueryTracker(run_id)
         self.query_tracker.track_initial_indices(self.x_ind_init, y_init)
-
+        dict_label = dict()
         #
         # [!] This is the main loop
         #
@@ -244,6 +244,15 @@ class ActiveLearningRun(object):
             y_train = train_set.y
             self.post_query(active_learner, ind, q, run_id, run_results, scores, y_train)
 
+            if q == 2:
+                dict_label['ini_scores'] = np.ndarray.tolist(scores)
+            if q == self.exp_args.num_queries:
+                dict_label['indices_labeled'] = np.ndarray.tolist(active_learner.indices_labeled)
+
+        with open('mlruns/' + self.dataset_config.dataset_name + '_labels.csv', 'w') as f:
+            w = csv.DictWriter(f, dict_label.keys())
+            w.writeheader()
+            w.writerow(dict_label)
         return self._create_artifacts()
 
     def post_query(self, active_learner, ind, q, run_id, run_results, scores, y_train):
