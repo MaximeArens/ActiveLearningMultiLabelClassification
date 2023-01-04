@@ -244,12 +244,20 @@ class ActiveLearningRun(object):
             y_train = train_set.y
             self.post_query(active_learner, ind, q, run_id, run_results, scores, y_train)
 
+            if q == 1:
+                dict_label['1'] = np.ndarray.tolist(scores)
             if q == 2:
-                dict_label['ini_scores'] = np.ndarray.tolist(scores)
+                dict_label['2'] = np.ndarray.tolist(scores)
+            if q == 3:
+                dict_label['3'] = np.ndarray.tolist(scores)
+            if q == 5:
+                dict_label['5'] = np.ndarray.tolist(scores)
+            if q == 10:
+                dict_label['10'] = np.ndarray.tolist(scores)
             if q == self.exp_args.num_queries:
                 dict_label['indices_labeled'] = np.ndarray.tolist(active_learner.indices_labeled)
 
-        with open('mlruns/' + self.dataset_config.dataset_name + '_labels.csv', 'w') as f:
+        with open('mlruns/' + str(self.query_strategy) + '_' + self.dataset_config.dataset_name + '_labels.csv', 'w') as f:
             w = csv.DictWriter(f, dict_label.keys())
             w.writeheader()
             w.writerow(dict_label)
