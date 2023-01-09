@@ -256,6 +256,9 @@ class ActiveLearningRun(object):
                     dict_label['10'] = np.ndarray.tolist(scores)
                 if q == self.exp_args.num_queries:
                     dict_label['indices_labeled'] = np.ndarray.tolist(active_learner.indices_labeled)
+            else:
+                if q == self.exp_args.num_queries:
+                    dict_label['indices_labeled'] = np.ndarray.tolist(active_learner.indices_labeled)
 
         with open('mlruns/' + str(self.query_strategy) + '_' + self.dataset_config.dataset_name + '_labels.csv', 'w') as f:
             w = csv.DictWriter(f, dict_label.keys())
