@@ -260,7 +260,7 @@ class ActiveLearningRun(object):
                 if q == self.exp_args.num_queries:
                     dict_label['indices_labeled'] = np.ndarray.tolist(active_learner.indices_labeled)
 
-        with open('mlruns/'+ str(active_learner.classifier.model.estimator) + '_' + str(self.query_strategy) + '_' + self.dataset_config.dataset_name + '_labels.csv', 'w') as f:
+        with open('mlruns/'+ 'BERT_' + str(self.query_strategy) + '_' + self.dataset_config.dataset_name + '_labels.csv', 'w') as f:
             w = csv.DictWriter(f, dict_label.keys())
             w.writeheader()
             w.writerow(dict_label)
