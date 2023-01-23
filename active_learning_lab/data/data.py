@@ -12,6 +12,7 @@ from small_text.integrations.transformers.datasets import TransformersDataset
 from transformers import AutoTokenizer
 from small_text.utils.labels import list_to_csr
 from datasets import DatasetDict
+from sklearn import preprocessing
 from sklearn.preprocessing import MultiLabelBinarizer
 import pandas as pd
 import ast
@@ -23,6 +24,7 @@ TEST_SET_RATIO_DEFAULT = 0.1
 
 class DataSets(Enum):
     JIGSAW = 'jigsaw'
+    JIGSAWMC = 'jigsaw_mc'
     GO_EMOTIONS = 'go_emotions'
     ECTHRA = 'ecthr_a'
     ECTHRB = 'ecthr_b'
@@ -34,6 +36,8 @@ class DataSets(Enum):
     def from_str(enum_str):
         if enum_str == 'jigsaw':
             return DataSets.JIGSAW
+        if enum_str == 'jigsaw_mc':
+            return DataSets.JIGSAWMC
         if enum_str == 'go_emotions':
             return DataSets.GO_EMOTIONS
         if enum_str == 'ecthr_a':
@@ -217,6 +221,8 @@ def _load_dataset(dataset, dataset_type, dataset_kwargs, classifier_kwargs,
                   test_set_ratio=TEST_SET_RATIO_DEFAULT):
     if dataset == DataSets.JIGSAW:
         return _load_jigsaw(dataset, dataset_type, dataset_kwargs, classifier_kwargs)
+    if dataset == DataSets.JIGSAWMC:
+        return _load_jigsaw_mc(dataset, dataset_type, dataset_kwargs, classifier_kwargs)
     elif dataset == DataSets.GO_EMOTIONS:
         return _load_go_emotions(dataset, dataset_type, dataset_kwargs, classifier_kwargs)
     elif dataset == DataSets.EURLEX:
@@ -270,6 +276,50 @@ def _load_jigsaw(dataset, dataset_type, dataset_kwargs, classifier_kwargs):
                           y_train), \
                RawDataset(jigsaw_dataset['test']['text'],
                           y_test)
+    else:
+        raise ValueError(f'Unsupported dataset type for dataset {str(dataset)}')
+
+
+def _load_jigsaw_mc(dataset, dataset_type, dataset_kwargs, classifier_kwargs):
+    jigsaw_dataset = DatasetDict.from_csv({'train': './data/jigsaw_datasets/train.csv',
+                                           'test': './data/jigsaw_datasets/test.csv'})
+    y_train = [ast.literal_eval(x) for x in jigsaw_dataset['train']['labels']]
+    y_test = [ast.literal_eval(x) for x in jigsaw_dataset['test']['labels']]
+
+    Y = y_train + y_test
+    le = preprocessing.LabelEncoder()
+    le.fit([str(tuple(label)) for label in Y])
+
+    y_train_mc = np.ndarray.tolist(le.transform([str(tuple(label)) for label in y_train]))
+    y_test_mc = np.ndarray.tolist(le.transform([str(tuple(label)) for label in y_test]))
+
+    if dataset_type == DataSetType.TRANSFORMERS:
+        tokenizer = _get_huggingface_tokenizer(classifier_kwargs)
+        return _text_to_transformers_dataset(tokenizer,
+                                             jigsaw_dataset['train']['text'],
+                                             y_train_mc,
+                                             jigsaw_dataset['test']['text'],
+                                             y_test_mc,
+                                             dataset_kwargs['max_length'],
+                                             multi_label=False)
+    elif dataset_type == DataSetType.TENSOR_PADDED_SEQ:
+        return _text_to_text_classification_dataset(
+            jigsaw_dataset['train']['text'],
+            y_train_mc,
+            jigsaw_dataset['test']['text'],
+            y_test_mc,
+            multilabel=False
+        )
+    elif dataset_type == DataSetType.BOW:
+        return _text_to_bow_mc(jigsaw_dataset['train']['text'],
+                            y_train_mc,
+                            jigsaw_dataset['test']['text'],
+                            y_test_mc)
+    elif dataset_type == DataSetType.RAW:
+        return RawDataset(jigsaw_dataset['train']['text'],
+                          y_train_mc), \
+               RawDataset(jigsaw_dataset['test']['text'],
+                          y_test_mc)
     else:
         raise ValueError(f'Unsupported dataset type for dataset {str(dataset)}')
 
@@ -536,6 +586,17 @@ def _text_to_bow(x, y, x_test, y_test, num_labels, max_features=50000, ngram_ran
     train_dataset.readability = np.asarray([ts.text_standard(y, float_output=True) for y in x])
     return train_dataset, test_dataset
 
+
+def _text_to_bow_mc(x, y, x_test, y_test, max_features=50000, ngram_range=(1, 2)):
+    from sklearn.feature_extraction.text import TfidfVectorizer
+
+    vectorizer = TfidfVectorizer(max_features=max_features, ngram_range=ngram_range)
+
+    x = vectorizer.fit_transform(x)
+    x_test = vectorizer.transform(x_test)
+
+    return (SklearnDataset(normalize(x), np.array(y)),
+            SklearnDataset(normalize(x_test), np.array(y_test)))
 
 def _text_to_transformers_dataset(tokenizer, train_text, train_labels, test_text,
                                   test_labels, max_length, multi_label):
