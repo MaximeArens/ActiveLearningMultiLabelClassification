@@ -12,10 +12,10 @@ from small_text.utils.labels import csr_to_list
 
 METRIC_COLUMNS = [
     'train_acc', 'train_micro_precision', 'train_micro_recall', 'train_micro_f1',
-    'train_macro_precision', 'train_macro_recall', 'train_macro_f1', 'train_ranking_loss', 'train_hamming_loss',
+    'train_macro_precision', 'train_macro_recall', 'train_macro_f1',
     'train_ece_10', 'test_acc', 'test_micro_precision', 'test_micro_recall', 'test_micro_f1', 'test_macro_precision',
     'test_macro_recall', 'test_macro_f1', 'test_ece_10'
-] # 'test_ranking_loss', 'test_hamming_loss'
+] # , 'train_ranking_loss', 'train_hamming_loss''test_ranking_loss', 'test_hamming_loss'
 
 COLUMNS = ['run_id', 'query_id', 'num_samples', 'query_time_sec', 'update_time_sec'] + \
           METRIC_COLUMNS
