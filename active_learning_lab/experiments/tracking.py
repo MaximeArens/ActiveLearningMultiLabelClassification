@@ -85,9 +85,9 @@ class MetricsTracker(object):
                 precision_score(y_true, y_pred, average='macro'),
                 recall_score(y_true, y_pred, average='macro'),
                 f1_score(y_true, y_pred, average='macro'),
-                label_ranking_loss(y_true, csr_matrix.toarray(y_pred)),
-                hamming_loss(y_true, y_pred),
-                expected_calibration_error(y_pred, y_pred_probas, y_true)
+                #label_ranking_loss(y_true, csr_matrix.toarray(y_pred)),
+                #hamming_loss(y_true, y_pred),
+                #expected_calibration_error(y_pred, y_pred_probas, y_true)
             ]
 
     def write(self, output_file):
