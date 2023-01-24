@@ -89,7 +89,10 @@ def _initialize_optimizer_and_scheduler(self, optimizer, scheduler, fine_tuning_
 def _get_params(model, base_lr, fine_tuning_arguments):
 
     base_model = getattr(model, model.base_model_prefix)
-    num_layers = len(base_model.encoder.layer)
+    if model.base_model_prefix == 'distilbert':
+        num_layers = base_model.transformer.n_layers
+    else:
+        num_layers = len(base_model.encoder.layer)
     layer_prefix = f'{model.base_model_prefix}.encoder.layer'
     groups = [(f'{layer_prefix}.{i}.', base_lr) for i in range(num_layers)]
 
