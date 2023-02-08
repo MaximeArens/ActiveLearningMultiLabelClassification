@@ -578,10 +578,8 @@ def get_initial_indices(train_set, initialization_strategy, num_samples):
 
 def get_dataset_text(dataset, sentence_transformer):
     if dataset == 'jigsaw':
-        jigsaw_dataset = datasets.DatasetDict.from_csv(
-        {'train': 'C:/Users/Maxime/Documents/Synapse/RetD/Scripts/ActiveLearningMultiLabelClassification/active_learning_lab/data/jigsaw_datasets/train.csv',
-         'test': 'C:/Users/Maxime/Documents/Synapse/RetD/Scripts/ActiveLearningMultiLabelClassification/active_learning_lab/data/jigsaw_datasets/test.csv'})
-
+        jigsaw_dataset = datasets.DatasetDict.from_csv({'train': './data/jigsaw_datasets/train.csv',
+                                               'test': './data/jigsaw_datasets/test.csv'})
         x_train = jigsaw_dataset['train']['text']
     if dataset == 'go_emotions':
         go_emotions_dataset = datasets.load_dataset('go_emotions')
