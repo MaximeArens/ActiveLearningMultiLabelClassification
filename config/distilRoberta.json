@@ -1,7 +1,7 @@
 {
   "experiment_name": "distilRoberta",
   "general": {
-    "runs": 5,
+    "runs": 1,
     "seed": 1003,
     "description": "Config for test distil_RoBerta, CR dataset and random sampling for query strategy",
     "max_reproducibility": null
@@ -25,7 +25,7 @@
     "dataset_kwargs": {
       "dataset_type": "transformers",
       "sampling_strategy": "multilabel",
-      "max_length": 512
+      "max_length": 128
     }
   },
   "active_learner": {
@@ -36,7 +36,10 @@
     "initialization_strategy_kwargs": {
       "num_instances": 25
     },
-    "query_strategy_kwargs": {
+    "query_strategy_kwargs":{
+      "intermediary_query_size": 75,
+      "batch_composition_strategy": null,
+      "sentence_transformer": "sentence-transformers/all-distilroberta-v1"
     }
   }
 }
