@@ -8,6 +8,8 @@ import torch
 import json
 import ast
 import mlflow
+import datasets
+from sentence_transformers import SentenceTransformer
 
 from contextlib import closing
 from pathlib import Path
@@ -29,7 +31,7 @@ from active_learning_lab.utils.experiment import (
 from active_learning_lab.utils.logging import setup_logger
 
 
-def main(args, experiment_name):
+def main(args, experiment_name, train_embeddings):
     sys.stderr = sys.stdout
     active_run = mlflow.active_run()
 
@@ -47,7 +49,7 @@ def main(args, experiment_name):
                 exp = builder.build(experiment_name)
 
                 # [!] This is the entry point to the actual experiment
-                results = exp.run(builder.train, builder.test)
+                results = exp.run(builder.train, builder.test, train_embeddings)
 
                 process_results(exp, results)
 
@@ -87,6 +89,25 @@ def process_results(al_exp, results):
             mlflow.log_artifact(file)
 
 
+def get_dataset_text(dataset, sentence_transformer):
+    if dataset == 'jigsaw':
+        jigsaw_dataset = datasets.DatasetDict.from_csv({'train': './data/jigsaw_datasets/train.csv',
+                                               'test': './data/jigsaw_datasets/test.csv'})
+        x_train = jigsaw_dataset['train']['text']
+    if dataset == 'go_emotions':
+        go_emotions_dataset = datasets.load_dataset('go_emotions')
+        x_train = go_emotions_dataset['train']['text']
+    if dataset == 'unfair_tos':
+        unfair_tos_dataset = datasets.load_dataset('lex_glue', 'unfair_tos')
+        x_train = unfair_tos_dataset['train']['text']
+    if dataset == 'eur_lex':
+        eurlex_dataset = datasets.load_dataset('lex_glue', 'eurlex')
+        x_train = eurlex_dataset['train']['text']
+    model = SentenceTransformer(sentence_transformer)
+    x_train_embeddings = model.encode(x_train)
+    return x_train_embeddings
+
+
 if __name__ == '__main__':
     arg_list = sys.argv
 
@@ -96,13 +117,14 @@ if __name__ == '__main__':
     classifier_config = arg_list[0]
 
     strategies = ['rd', 'ml', 'mml', 'cmn', 'cvirs', 'mmu', 'lci']
+
+    with open('../config/' + classifier_config) as json_file:
+        args = json.load(json_file)
+        args['dataset']['dataset_name'] = arg_list[1]
+    train_embeddings = get_dataset_text(args['dataset']['dataset_name'],
+                                        "sentence-transformers/nli-distilbert-base")
     for strategy in strategies:
-        with open('../config/' + classifier_config) as json_file:
-            args = json.load(json_file)
-            #args['active_learner']['query_strategy'] = arg_list[1]
-            #args['dataset']['dataset_name'] = arg_list[2]
-            args['active_learner']['query_strategy'] = strategy
-            args['dataset']['dataset_name'] = arg_list[1]
+        args['active_learner']['query_strategy'] = strategy
 
         suppress_known_thirdparty_warnings()
         set_random_seed(args['general']['seed'], args['general']['max_reproducibility'])
@@ -147,4 +169,4 @@ if __name__ == '__main__':
             mlflow.log_param('query_strategy', args['active_learner']['query_strategy'])
             mlflow.log_param('description', args['general']['description'])
 
-            main(args, experiment_name)
+            main(args, experiment_name, train_embeddings)

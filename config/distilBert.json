@@ -39,8 +39,8 @@
       "num_instances": 25
     },
     "query_strategy_kwargs":{
-      "intermediary_query_size": 75,
-      "batch_composition_strategy": null,
+      "intermediary_query_size": 50,
+      "batch_composition_strategy": "closest_dataset",
       "sentence_transformer": "sentence-transformers/nli-distilbert-base"
     }
   }

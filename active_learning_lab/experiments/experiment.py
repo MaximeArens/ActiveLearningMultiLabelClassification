@@ -127,7 +127,7 @@ class ActiveLearningExperiment(object):
 
         self.metrics_tracker = MetricsTracker()
 
-    def run(self, train_set, test_set):
+    def run(self, train_set, test_set, train_embeddings):
         artifacts = self._pre_experiment(train_set, test_set)
 
         # The seeds for the single runs are dependendent on the "main seed".
@@ -153,7 +153,7 @@ class ActiveLearningExperiment(object):
                 self.query_strategy_kwargs,
                 self.initialization_strategy,
                 self.initialization_strategy_kwargs
-            ).execute(run_id, train_set, test_set)
+            ).execute(run_id, train_set, test_set, train_embeddings)
             self._post_run()
 
         return self._post_experiment(artifacts)
@@ -217,7 +217,7 @@ class ActiveLearningRun(object):
         self.train_history_dir = self.query_dir.joinpath('train_history')
         self.train_history_dir.mkdir()
 
-    def execute(self, run_id, train_set, test_set):
+    def execute(self, run_id, train_set, test_set, train_embeddings):
         set_random_seed(self.seed)
         active_learner, y_init = self._get_initialized_active_learner(train_set)
 
@@ -228,7 +228,6 @@ class ActiveLearningRun(object):
                 y_init,
                 strategy=self.dataset_config.dataset_kwargs['sampling_strategy'],
                 validation_set_size=self.classification_args.validation_set_size)
-        train_embeddings = get_dataset_text(self.dataset_config.dataset_name, self.query_strategy_kwargs['sentence_transformer'])
         # Initial evaluation
         ind, run_results = self.run_initial_evaluation(active_learner, train_set,
                                                        x_indices_validation, test_set)
@@ -262,11 +261,17 @@ class ActiveLearningRun(object):
             else:
                 if q == self.exp_args.num_queries:
                     dict_label['indices_labeled'] = np.ndarray.tolist(active_learner.indices_labeled)
+        if self.classification_args.classifier_name == 'transformer':
+            with open('mlruns/'+ self.classification_args.classifier_kwargs['transformer_model'] + str(self.query_strategy) + '_' + self.dataset_config.dataset_name + '_labels.csv', 'w') as f:
+                w = csv.DictWriter(f, dict_label.keys())
+                w.writeheader()
+                w.writerow(dict_label)
+        else:
+            with open('mlruns/' + self.classification_args.classifier_name + '_' + str(self.query_strategy) + '_' + self.dataset_config.dataset_name + '_labels.csv', 'w') as f:
+                w = csv.DictWriter(f, dict_label.keys())
+                w.writeheader()
+                w.writerow(dict_label)
 
-        with open('mlruns/'+ 'BERT_' + str(self.query_strategy) + '_' + self.dataset_config.dataset_name + '_labels.csv', 'w') as f:
-            w = csv.DictWriter(f, dict_label.keys())
-            w.writeheader()
-            w.writerow(dict_label)
         return self._create_artifacts()
 
     def post_query(self, active_learner, ind, q, run_id, run_results, scores, y_train):
@@ -576,20 +581,4 @@ def get_initial_indices(train_set, initialization_strategy, num_samples):
     return indices_initial
 
 
-def get_dataset_text(dataset, sentence_transformer):
-    if dataset == 'jigsaw':
-        jigsaw_dataset = datasets.DatasetDict.from_csv({'train': './data/jigsaw_datasets/train.csv',
-                                               'test': './data/jigsaw_datasets/test.csv'})
-        x_train = jigsaw_dataset['train']['text']
-    if dataset == 'go_emotions':
-        go_emotions_dataset = datasets.load_dataset('go_emotions')
-        x_train = go_emotions_dataset['train']['text']
-    if dataset == 'unfair_tos':
-        unfair_tos_dataset = datasets.load_dataset('lex_glue', 'unfair_tos')
-        x_train = unfair_tos_dataset['train']['text']
-    if dataset == 'eur_lex':
-        eurlex_dataset = datasets.load_dataset('lex_glue', 'eurlex')
-        x_train = eurlex_dataset['train']['text']
-    model = SentenceTransformer(sentence_transformer)
-    x_train_embeddings = model.encode(x_train)
-    return x_train_embeddings
+
