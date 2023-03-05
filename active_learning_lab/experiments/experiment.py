@@ -379,7 +379,7 @@ class ActiveLearningRun(object):
         else:
             y_train_labeled_true = train_set[x_indices_labeled].y
 
-        query_strategy = active_learner.query_strategy
+
         if self.query_strategy_kwargs['batch_composition_strategy'] is not None:
             query_func = partial(active_learner.query, num_samples=self.query_strategy_kwargs['intermediary_query_size'])
             query_time, intermediary_ind = measure_time(query_func)
@@ -391,6 +391,7 @@ class ActiveLearningRun(object):
             query_func = partial(active_learner.query, num_samples=self.exp_args.query_size)
             query_time, ind = measure_time(query_func)
 
+        query_strategy = active_learner.query_strategy
         scores = query_strategy.scores_ if hasattr(query_strategy, 'scores_') else None
         log_class_distribution(active_learner.y, self.num_classes)
 
