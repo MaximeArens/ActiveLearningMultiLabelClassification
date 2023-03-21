@@ -259,11 +259,17 @@ class ActiveLearningRun(object):
             else:
                 if q == self.exp_args.num_queries:
                     dict_label['indices_labeled'] = np.ndarray.tolist(active_learner.indices_labeled)
+        if self.classification_args.classifier_name == 'transformer':
+            with open('mlruns/'+ self.classification_args.classifier_kwargs['transformer_model'] + str(self.query_strategy) + '_' + self.dataset_config.dataset_name + '_labels.csv', 'w') as f:
+                w = csv.DictWriter(f, dict_label.keys())
+                w.writeheader()
+                w.writerow(dict_label)
+        else:
+            with open('mlruns/' + self.classification_args.classifier_name + '_' + str(self.query_strategy) + '_' + self.dataset_config.dataset_name + '_labels.csv', 'w') as f:
+                w = csv.DictWriter(f, dict_label.keys())
+                w.writeheader()
+                w.writerow(dict_label)
 
-        with open('mlruns/'+ 'BERT_' + str(self.query_strategy) + '_' + self.dataset_config.dataset_name + '_labels.csv', 'w') as f:
-            w = csv.DictWriter(f, dict_label.keys())
-            w.writeheader()
-            w.writerow(dict_label)
         return self._create_artifacts()
 
     def post_query(self, active_learner, ind, q, run_id, run_results, scores, y_train):
