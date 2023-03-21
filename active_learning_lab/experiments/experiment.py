@@ -453,7 +453,7 @@ def compose_batch(batch_composition_strategy, intermediary_ind, final_batch_size
     final_ind.append(intermediary_ind[0])
     final_embeddings.append(embeddings_list[0])
     intermediary_ind = np.delete(intermediary_ind, [0])
-    #embeddings_list.remove(embeddings_list[0])
+    embeddings_list.remove(embeddings_list[0])
     del embeddings_list[0]
 
     if batch_composition_strategy == "most_diverse":
@@ -484,22 +484,7 @@ def compose_batch(batch_composition_strategy, intermediary_ind, final_batch_size
             intermediary_ind = np.delete(intermediary_ind, [most_similar_ind])
             del embeddings_list[most_similar_ind]
 
-    if batch_composition_strategy == "no_similar_pair":
-        while len(final_ind) < final_batch_size:
-            if not similar_with_instance_in_batch(final_embeddings, embeddings_list[0]):
-                final_ind.append(intermediary_ind[0])
-                final_embeddings.append(embeddings_list[0])
-            intermediary_ind = np.delete(intermediary_ind, [0])
-            del embeddings_list[0]
     return np.array(final_ind)
-
-
-def similar_with_instance_in_batch(batch_embeddings, embedding):
-    for e in batch_embeddings:
-        cos_sim = sklearn.metrics.pairwise.cosine_similarity(e.reshape(1, -1), embedding.reshape(1, -1))[0][0]
-        if cos_sim > 0.9:
-            return True
-    return False
 
 
 def auc_metrics(tmp_dir, metrics_tracker, artifacts):
