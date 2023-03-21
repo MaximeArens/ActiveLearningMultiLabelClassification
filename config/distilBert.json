@@ -2,7 +2,7 @@
 {
   "experiment_name": "distilBert",
   "general":{
-    "runs": 1,
+    "runs": 5,
     "seed": 1003,
     "description": "Config for test distilBERT, CR dataset and random sampling for query strategy",
     "max_reproducibility": null
@@ -27,7 +27,7 @@
     "dataset_kwargs": {
       "dataset_type": "transformers",
       "sampling_strategy": "multilabel",
-      "max_length": 128
+      "max_length": 50
     }
   },
   "active_learner": {
@@ -39,9 +39,7 @@
       "num_instances": 25
     },
     "query_strategy_kwargs":{
-      "intermediary_query_size": 75,
-      "batch_composition_strategy": null,
-      "sentence_transformer": "sentence-transformers/nli-distilbert-base"
+
     }
   }
 

@@ -33,10 +33,7 @@ from active_learning_lab.utils.experiment import (
     set_random_seed
 )
 from active_learning_lab.utils.time import measure_time
-from sentence_transformers import SentenceTransformer
-import datasets
-import ast
-import sklearn
+
 
 INITIALIZATION_NUM_INSTANCES_DEFAULT = 25
 
@@ -228,7 +225,7 @@ class ActiveLearningRun(object):
                 y_init,
                 strategy=self.dataset_config.dataset_kwargs['sampling_strategy'],
                 validation_set_size=self.classification_args.validation_set_size)
-        train_embeddings = get_dataset_text(self.dataset_config.dataset_name, self.query_strategy_kwargs['sentence_transformer'])
+
         # Initial evaluation
         ind, run_results = self.run_initial_evaluation(active_learner, train_set,
                                                        x_indices_validation, test_set)
@@ -242,7 +239,7 @@ class ActiveLearningRun(object):
         #
         for q in range(1, self.exp_args.num_queries+1):
             ind, scores, run_results = self.run_query(active_learner, q, run_id,
-                                                      train_set, test_set, train_embeddings,
+                                                      train_set, test_set,
                                                       self.query_strategy_kwargs)
             y_train = train_set.y
             self.post_query(active_learner, ind, q, run_id, run_results, scores, y_train)
@@ -363,7 +360,7 @@ class ActiveLearningRun(object):
 
         return active_learner.indices_labeled, run_results
 
-    def run_query(self, active_learner, q, run_id, train_set, test_set, train_embeddings,
+    def run_query(self, active_learner, q, run_id, train_set, test_set,
                   _query_strategy_kwargs=dict()):
 
         logging.info('## Run: %d / Query: %d', run_id, q)
@@ -374,20 +371,13 @@ class ActiveLearningRun(object):
         else:
             y_train_labeled_true = train_set[x_indices_labeled].y
 
-        query_strategy = active_learner.query_strategy
-        if self.query_strategy_kwargs['batch_composition_strategy'] is not None:
-            query_func = partial(active_learner.query, num_samples=self.query_strategy_kwargs['intermediary_query_size'])
-            query_time, intermediary_ind = measure_time(query_func)
-            ind = compose_batch(self.query_strategy_kwargs['batch_composition_strategy'], intermediary_ind,
-                                self.exp_args.query_size, train_embeddings)
-            active_learner.indices_queried = ind
+        query_func = partial(active_learner.query, num_samples=self.exp_args.query_size)
+        query_time, ind = measure_time(query_func)
 
-        else:
-            query_func = partial(active_learner.query, num_samples=self.exp_args.query_size)
-            query_time, ind = measure_time(query_func)
-
-        scores = query_strategy.scores_ if hasattr(query_strategy, 'scores_') else None
         log_class_distribution(active_learner.y, self.num_classes)
+
+        query_strategy = active_learner.query_strategy
+        scores = query_strategy.scores_ if hasattr(query_strategy, 'scores_') else None
 
         # Update
         if not self.classification_args.incremental_training and hasattr(active_learner.classifier, 'model'):
@@ -435,51 +425,6 @@ class ActiveLearningRun(object):
                                  test_set.y, y_test_pred, y_test_proba)
 
         return ind, scores, run_results
-
-
-def compose_batch(batch_composition_strategy, intermediary_ind, final_batch_size, train_embeddings):
-    embeddings_list = []
-    for i in range(len(intermediary_ind)):
-        embeddings_list.append(train_embeddings[intermediary_ind[i]])
-
-    final_ind = []
-    final_embeddings = []
-
-    final_ind.append(intermediary_ind[0])
-    final_embeddings.append(embeddings_list[0])
-    intermediary_ind = np.delete(intermediary_ind, [0])
-    embeddings_list.remove(embeddings_list[0])
-    del embeddings_list[0]
-
-    if batch_composition_strategy == "most_diverse":
-        while len(final_ind) < final_batch_size:
-            mean_final_embedding = sum(final_embeddings)/len(final_embeddings)
-            mean_final_embedding = np.reshape(mean_final_embedding, (1,-1))
-
-            pairwise_similarity_matrix = sklearn.metrics.pairwise.cosine_similarity(mean_final_embedding, embeddings_list)
-
-            most_diverse_ind = np.argmin(pairwise_similarity_matrix)
-
-            final_ind.append(intermediary_ind[most_diverse_ind])
-            final_embeddings.append(embeddings_list[most_diverse_ind])
-            intermediary_ind = np.delete(intermediary_ind, [most_diverse_ind])
-            del embeddings_list[most_diverse_ind]
-    if batch_composition_strategy == "closest_dataset":
-        while len(final_ind) < final_batch_size:
-            mean_dataset_embedding = sum(train_embeddings)/len(train_embeddings)
-            mean_dataset_embedding = np.reshape(mean_dataset_embedding, (1,-1))
-
-            potential_final_embeddings = [(embedding+sum(final_embeddings))/(len(final_embeddings)+1) for embedding in embeddings_list]
-            pairwise_similarity_matrix = sklearn.metrics.pairwise.cosine_similarity(mean_dataset_embedding, potential_final_embeddings)
-
-            most_similar_ind = np.argmax(pairwise_similarity_matrix)
-
-            final_ind.append(intermediary_ind[most_similar_ind])
-            final_embeddings.append(embeddings_list[most_similar_ind])
-            intermediary_ind = np.delete(intermediary_ind, [most_similar_ind])
-            del embeddings_list[most_similar_ind]
-
-    return np.array(final_ind)
 
 
 def auc_metrics(tmp_dir, metrics_tracker, artifacts):
@@ -574,24 +519,3 @@ def get_initial_indices(train_set, initialization_strategy, num_samples):
         raise ValueError('Invalid initialization strategy: ' + initialization_strategy)
 
     return indices_initial
-
-
-def get_dataset_text(dataset, sentence_transformer):
-    if dataset == 'jigsaw':
-        jigsaw_dataset = datasets.DatasetDict.from_csv(
-        {'train': 'C:/Users/Maxime/Documents/Synapse/RetD/Scripts/ActiveLearningMultiLabelClassification/active_learning_lab/data/jigsaw_datasets/train.csv',
-         'test': 'C:/Users/Maxime/Documents/Synapse/RetD/Scripts/ActiveLearningMultiLabelClassification/active_learning_lab/data/jigsaw_datasets/test.csv'})
-
-        x_train = jigsaw_dataset['train']['text'][:200]
-    if dataset == 'go_emotions':
-        go_emotions_dataset = datasets.load_dataset('go_emotions')
-        x_train = go_emotions_dataset['train']['text']
-    if dataset == 'unfair_tos':
-        unfair_tos_dataset = datasets.load_dataset('lex_glue', 'unfair_tos')
-        x_train = unfair_tos_dataset['train']['text']
-    if dataset == 'eur_lex':
-        eurlex_dataset = datasets.load_dataset('lex_glue', 'eurlex')
-        x_train = eurlex_dataset['train']['text']
-    model = SentenceTransformer(sentence_transformer)
-    x_train_embeddings = model.encode(x_train)
-    return x_train_embeddings
