@@ -582,7 +582,7 @@ def get_dataset_text(dataset, sentence_transformer):
         {'train': 'C:/Users/Maxime/Documents/Synapse/RetD/Scripts/ActiveLearningMultiLabelClassification/active_learning_lab/data/jigsaw_datasets/train.csv',
          'test': 'C:/Users/Maxime/Documents/Synapse/RetD/Scripts/ActiveLearningMultiLabelClassification/active_learning_lab/data/jigsaw_datasets/test.csv'})
 
-        x_train = jigsaw_dataset['train']['text']
+        x_train = jigsaw_dataset['train']['text'][:200]
     if dataset == 'go_emotions':
         go_emotions_dataset = datasets.load_dataset('go_emotions')
         x_train = go_emotions_dataset['train']['text']
