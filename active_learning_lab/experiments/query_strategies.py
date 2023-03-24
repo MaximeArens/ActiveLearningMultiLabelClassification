@@ -68,7 +68,7 @@ class HighReadabilityFirst(QueryStrategy):
         self._validate_query_input(indices_unlabeled, n)
 
         readability = _dataset.readability
-        if len(indices_unlabeled) == n:
+        if len(indices_unlabeled) <= n:
             return np.array(indices_unlabeled)
 
         indices_partitioned = np.argpartition(readability[indices_unlabeled], n)[:n]
@@ -93,7 +93,7 @@ class ProgressiveReadability(QueryStrategy):
                     if _dataset.readability[i] == _dataset.readability[indices_labeled[len(indices_labeled)-1]]:
                         _dataset.readability[i] = _dataset.readability[i] + 1000
 
-        if len(indices_unlabeled) == n:
+        if len(indices_unlabeled) <= n:
             return np.array(indices_unlabeled)
 
         indices_partitioned = np.argpartition(_dataset.readability[indices_unlabeled], n)[:n]
@@ -483,9 +483,9 @@ class CategoryVectorInconsistencyAndRanking(QueryStrategy):
         entropy_distance = 2 * joint_entropy - entropy_unlabeled - entropy_labeled
         entropy_distance /= (joint_entropy + self.epsilon)
 
-        distance[hamming_distance == 1] = 1
+        entropy_distance[hamming_distance == 1] = 1
 
-        return distance
+        return entropy_distance
 
     def _entropy(self, numerator, denominator):
         ratio = numerator / (denominator + self.epsilon)
@@ -508,10 +508,10 @@ class CategoryVectorInconsistencyAndRanking(QueryStrategy):
     def _rank_by_margin(self, proba):
         num_classes = proba.shape[1]
 
-        proba_sum = proba.sum(axis=1)
-        margin = proba - np.tile(proba_sum[:, np.newaxis], (1, num_classes))
-        margin = np.absolute(margin)
-
+        #proba_sum = proba.sum(axis=1)
+        #margin = proba - np.tile(proba_sum[:, np.newaxis], (1, num_classes))
+        #margin = np.absolute(margin)
+        margin = abs(2*proba - 1)
         ranks = np.array([
             np.argsort(margin[:, j])
             for j in range(num_classes)
