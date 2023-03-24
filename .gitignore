@@ -6,3 +6,4 @@ __pycache__/
 /active_learning_lab/mlruns
 .active_learning_lib_cache/
 .cache
+*\meta.yaml
