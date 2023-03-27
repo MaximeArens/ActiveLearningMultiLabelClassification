@@ -25,6 +25,7 @@
     "dataset_kwargs": {
       "dataset_type": "transformers",
       "sampling_strategy": "multilabel",
+      "sentence_transformer": "sentence-transformers/nli-distilbert-base",
       "max_length": 128
     }
   },
@@ -37,6 +38,8 @@
       "num_instances": 25
     },
     "query_strategy_kwargs": {
+      "batch_composition_strategy": null,
+      "train_embeddings": null
     }
   }
 }

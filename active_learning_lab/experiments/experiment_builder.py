@@ -44,14 +44,14 @@ class ActiveLearningExperimentBuilder(object):
 
             dataset_kwargs['tokenizer_name'] = self.classifier_kwargs['transformer_model']
 
-        train_raw, test_raw = load_dataset(dataset_name,
+        train_raw, test_raw, train_embeddings = load_dataset(dataset_name,
                                            dataset_kwargs,
                                            self.classifier_name,
                                            self.classifier_kwargs,
                                            dataset_type='raw')
 
         with default_tensor_type(torch.FloatTensor):
-            self.train, self.test = load_dataset(dataset_name,
+            self.train, self.test, self.query_strategy_kwargs['train_embeddings'] = load_dataset(dataset_name,
                                                  dataset_kwargs,
                                                  self.classifier_name,
                                                  self.classifier_kwargs)

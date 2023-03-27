@@ -407,7 +407,7 @@ class CategoryVectorInconsistencyAndRanking(QueryStrategy):
         self.epsilon = epsilon
         self.pbar = pbar
 
-    def query(self, clf, dataset, indices_unlabeled, _indices_labeled, y, n=10):
+    def query(self, clf, dataset, indices_unlabeled, _indices_labeled, y, n=10, batch_composition_strategy=None, train_embeddings=None):
         self._validate_query_input(indices_unlabeled, n)
 
         y_proba = clf.predict_proba(dataset[indices_unlabeled])
@@ -508,9 +508,6 @@ class CategoryVectorInconsistencyAndRanking(QueryStrategy):
     def _rank_by_margin(self, proba):
         num_classes = proba.shape[1]
 
-        #proba_sum = proba.sum(axis=1)
-        #margin = proba - np.tile(proba_sum[:, np.newaxis], (1, num_classes))
-        #margin = np.absolute(margin)
         margin = abs(2*proba - 1)
         ranks = np.array([
             np.argsort(margin[:, j])

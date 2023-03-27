@@ -376,8 +376,7 @@ class ActiveLearningRun(object):
             y_train_labeled_true = np.array([], dtype=int)
         else:
             y_train_labeled_true = train_set[x_indices_labeled].y
-
-        query_func = partial(active_learner.query, num_samples=self.exp_args.query_size)
+        query_func = partial(active_learner.query, num_samples=self.exp_args.query_size, query_strategy_kwargs=_query_strategy_kwargs)
         query_time, ind = measure_time(query_func)
 
         log_class_distribution(active_learner.y, self.num_classes)
