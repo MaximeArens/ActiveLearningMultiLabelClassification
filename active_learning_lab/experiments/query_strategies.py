@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.special import rel_entr
 from scipy.spatial.distance import cdist
+from abc import ABC, abstractmethod
+import sklearn
 
 from small_text.utils.context import build_pbar_context
 from small_text.query_strategies import (
@@ -10,7 +12,6 @@ from small_text.query_strategies import (
     RandomSampling,
     PredictionEntropy,
     SubsamplingQueryStrategy,
-    ConfidenceBasedQueryStrategy,
     QueryStrategy)
 
 
@@ -59,6 +60,121 @@ def query_strategy_from_str(query_strategy_name, kwargs):
         strategy = SubsamplingQueryStrategy(strategy, subsample_size)
 
     return strategy
+
+
+class ConfidenceBasedQueryStrategy(QueryStrategy):
+    """A base class for confidence-based querying.
+
+    To use this class, create a subclass and implement `get_confidence()`.
+    """
+
+    def __init__(self, lower_is_better=False):
+        self.lower_is_better = lower_is_better
+        self.scores_ = None
+
+    def query(self, clf, dataset, indices_unlabeled, indices_labeled, y, n=10, batch_composition_strategy=None, train_embeddings=None):
+        self._validate_query_input(indices_unlabeled, n)
+
+        confidence = self.score(clf, dataset, indices_unlabeled, indices_labeled, y)
+
+        if len(indices_unlabeled) == n:
+            return np.array(indices_unlabeled)
+
+        if batch_composition_strategy is not None:
+            return batch_composition(n, confidence, indices_unlabeled, train_embeddings, batch_composition_strategy)
+        else:
+            indices_partitioned = np.argpartition(confidence[indices_unlabeled], range(n))[:n]
+            return np.array([indices_unlabeled[i] for i in indices_partitioned])
+
+    def score(self, clf, dataset, indices_unlabeled, indices_labeled, y):
+        """Assigns a confidence score to each instance.
+
+        Parameters
+        ----------
+        clf : small_text.classifiers.Classifier
+            A text classifier.
+        dataset : small_text.data.datasets.Dataset
+            A text dataset.
+        indices_unlabeled : np.ndarray[int]
+            Indices (relative to `dataset`) for the unlabeled data.
+        indices_labeled : np.ndarray[int]
+            Indices (relative to `dataset`) for the labeled data.
+        y : np.ndarray[int] or csr_matrix
+            List of labels where each label maps by index position to `indices_labeled`.
+
+        Returns
+        -------
+        confidence : np.ndarray[float]
+            Array of confidence scores in the shape (n_samples, n_classes).
+            If `self.lower_is_better` the confiden values are flipped to negative so that
+            subsequent methods do not need to differentiate maximization/minimization.
+        """
+
+        confidence = self.get_confidence(clf, dataset, indices_unlabeled, indices_labeled, y)
+        self.scores_ = confidence
+        if not self.lower_is_better:
+            confidence = -confidence
+
+        return confidence
+
+    @abstractmethod
+    def get_confidence(self, clf, dataset, indices_unlabeled, indices_labeled, y):
+        """Computes a confidence score for each of the given instances.
+
+        Parameters
+        ----------
+        clf : small_text.classifiers.Classifier
+            A text classifier.
+        dataset : small_text.data.datasets.Dataset
+            A text dataset.
+        indices_unlabeled : np.ndarray[int]
+            Indices (relative to `dataset`) for the unlabeled data.
+        indices_labeled : np.ndarray[int]
+            Indices (relative to `dataset`) for the labeled data.
+        y : np.ndarray[int] or csr_matrix
+            List of labels where each label maps by index position to `indices_labeled`.
+        Returns
+        -------
+        confidence : ndarray[float]
+            Array of confidence scores in the shape (n_samples, n_classes).
+        """
+        pass
+
+    def __str__(self):
+        return 'ConfidenceBasedQueryStrategy()'
+
+
+def similar_with_instance_in_batch(batch_embeddings, embedding):
+    for e in batch_embeddings:
+        cos_sim = sklearn.metrics.pairwise.cosine_similarity(e.reshape(1, -1), embedding.reshape(1, -1))[0][0]
+        if cos_sim > 0.9:
+            return True
+    return False
+
+
+def batch_composition(n, confidence, indices_unlabeled, train_embeddings, batch_composition_strategy):
+    m = 5 * n
+    indices_partitioned = np.argpartition(confidence[indices_unlabeled], range(m))[:m]
+    embeddings_partitioned = []
+    for i in range(len(indices_partitioned)):
+        embeddings_partitioned.append(train_embeddings[indices_partitioned[i]])
+    # init
+    final_indices = []
+    final_embeddings = []
+
+    final_indices.append(indices_partitioned[0])
+    final_embeddings.append(embeddings_partitioned[0])
+    indices_partitioned = np.delete(indices_partitioned, [0])
+    embeddings_partitioned.remove(embeddings_partitioned[0])
+
+    if batch_composition_strategy == "no_similar_pair":
+        while len(final_indices) < n:
+            if not similar_with_instance_in_batch(final_embeddings, embeddings_partitioned[0]):
+                final_indices.append(indices_partitioned[0])
+                final_embeddings.append(embeddings_partitioned[0])
+            indices_partitioned = np.delete(indices_partitioned, [0])
+            embeddings_partitioned.remove(embeddings_partitioned[0])
+    return np.array([indices_unlabeled[i] for i in final_indices])
 
 
 class HighReadabilityFirst(QueryStrategy):
