@@ -11,13 +11,13 @@ from small_text.integrations.pytorch.datasets import PytorchTextClassificationDa
 from small_text.integrations.transformers.datasets import TransformersDataset
 from transformers import AutoTokenizer
 from small_text.utils.labels import list_to_csr
-from datasets import DatasetDict
+from datasets import DatasetDict, Dataset
 from sklearn import preprocessing
 from sklearn.preprocessing import MultiLabelBinarizer
 import pandas as pd
 import ast
 import textstat as ts
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer, util
 
 
 TEST_SET_RATIO_DEFAULT = 0.1
@@ -161,8 +161,17 @@ def load_dataset(dataset, dataset_kwargs, classifier_name, classifier_kwargs, da
 
     train, test, x_train = _load_dataset(dataset, dataset_type_expected, dataset_kwargs, classifier_kwargs)
     model = SentenceTransformer(dataset_kwargs['sentence_transformer'])
-    train_embeddings = model.encode(x_train)
-    return train, test, train_embeddings
+    train_embeddings = model.encode(x_train, batch_size=64, show_progress_bar=True, convert_to_tensor=True)
+    if dataset_kwargs['clustering']:
+        clusters_id = util.community_detection(train_embeddings, min_community_size=dataset_kwargs['min_community_size'], threshold=dataset_kwargs['similarity_threshold'])
+        dataset_kwargs['clustering_indices'] = clusters_id
+        centroid_clusters = []
+        for cluster_id in clusters_id:
+            centroid_clusters.append(cluster_id[0])
+        # filter train dataset around the centroid of each cluster
+        train = train[centroid_clusters]
+
+    return train, test
 
 
 def get_dataset_type(classifier_name, dataset_kwargs, dataset_type):

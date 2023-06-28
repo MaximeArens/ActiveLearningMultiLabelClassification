@@ -72,7 +72,7 @@ class ConfidenceBasedQueryStrategy(QueryStrategy):
         self.lower_is_better = lower_is_better
         self.scores_ = None
 
-    def query(self, clf, dataset, indices_unlabeled, indices_labeled, y, n=10, batch_composition_strategy=None, train_embeddings=None):
+    def query(self, clf, dataset, indices_unlabeled, indices_labeled, y, n=10): #, batch_composition_strategy=None, train_embeddings=None
         self._validate_query_input(indices_unlabeled, n)
 
         confidence = self.score(clf, dataset, indices_unlabeled, indices_labeled, y)
@@ -80,11 +80,11 @@ class ConfidenceBasedQueryStrategy(QueryStrategy):
         if len(indices_unlabeled) == n:
             return np.array(indices_unlabeled)
 
-        if batch_composition_strategy is not None:
-            return batch_composition(n, confidence, indices_unlabeled, train_embeddings, batch_composition_strategy)
-        else:
-            indices_partitioned = np.argpartition(confidence[indices_unlabeled], range(n))[:n]
-            return np.array([indices_unlabeled[i] for i in indices_partitioned])
+        # if batch_composition_strategy is not None:
+        #     return batch_composition(n, confidence, indices_unlabeled, train_embeddings, batch_composition_strategy)
+        # else:
+        indices_partitioned = np.argpartition(confidence[indices_unlabeled], range(n))[:n]
+        return np.array([indices_unlabeled[i] for i in indices_partitioned])
 
     def score(self, clf, dataset, indices_unlabeled, indices_labeled, y):
         """Assigns a confidence score to each instance.
@@ -523,7 +523,7 @@ class CategoryVectorInconsistencyAndRanking(QueryStrategy):
         self.epsilon = epsilon
         self.pbar = pbar
 
-    def query(self, clf, dataset, indices_unlabeled, _indices_labeled, y, n=10, batch_composition_strategy=None, train_embeddings=None):
+    def query(self, clf, dataset, indices_unlabeled, _indices_labeled, y, n=10):#, batch_composition_strategy=None, train_embeddings=None):
         self._validate_query_input(indices_unlabeled, n)
 
         y_proba = clf.predict_proba(dataset[indices_unlabeled])
