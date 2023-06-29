@@ -260,8 +260,8 @@ class ActiveLearningRun(object):
                 if q == self.exp_args.num_queries:
                     dict_label['indices_labeled'] = np.ndarray.tolist(active_learner.indices_labeled)
 
-        if self.dataset_config.dataset_kwargs['clustering'] == True:
-            dict_label['clustering_indices'] == self.dataset_config.dataset_kwargs['clustering']
+        if self.dataset_config.dataset_kwargs['clustering']:
+            dict_label['clustering_indices'] = self.dataset_config.dataset_kwargs['clustering_indices']
 
         if self.classification_args.classifier_name == 'transformer':
             if run_id == 1:
