@@ -332,9 +332,7 @@ class ActiveLearningRun(object):
 
         if isinstance(active_learner.classifier, PytorchClassifier):
             active_learner.classifier.model = active_learner.classifier.model.cuda()
-            logging.info('Number of gpus : %d', torch.cuda.device_count())
-            if torch.cuda.device_count() > 1:
-                active_learner.classifier.model = DataParallel(self.active_learner.classifier.model)
+
 
         return active_learner, y_init
 
@@ -359,6 +357,12 @@ class ActiveLearningRun(object):
         update_time = measure_time(
             partial(active_learner._retrain, indices_validation=x_indices_validation),
             has_return_value=False)
+
+        logging.info('Number of gpus : %d', torch.cuda.device_count())
+        
+        if torch.cuda.is_available():
+            if torch.cuda.device_count() > 1:
+                active_learner.classifier.model = DataParallel(self.active_learner.classifier.model)
 
         # Evaluation
         y_train_pred, y_train_proba = active_learner.classifier.predict(train_set,
