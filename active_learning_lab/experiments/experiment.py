@@ -15,6 +15,8 @@ from scipy.sparse import csr_matrix, vstack
 
 from small_text.active_learner import PoolBasedActiveLearner
 from small_text.integrations.pytorch.classifiers import PytorchClassifier
+from torch.nn import DataParallel
+
 
 from active_learning_lab.experiments.logging import (
     log_class_distribution,
@@ -330,6 +332,9 @@ class ActiveLearningRun(object):
 
         if isinstance(active_learner.classifier, PytorchClassifier):
             active_learner.classifier.model = active_learner.classifier.model.cuda()
+            logging.info('Number of gpus : %d', torch.cuda.device_count())
+            if torch.cuda.device_count() > 1:
+                active_learner.classifier.model = DataParallel(self.active_learner.classifier.model)
 
         return active_learner, y_init
 
