@@ -71,6 +71,7 @@ class ConfidenceBasedQueryStrategy(QueryStrategy):
     def __init__(self, lower_is_better=False):
         self.lower_is_better = lower_is_better
         self.scores_ = None
+        self.proba_ = None
 
     def query(self, clf, dataset, indices_unlabeled, indices_labeled, y, n=10): #, batch_composition_strategy=None, train_embeddings=None
         self._validate_query_input(indices_unlabeled, n)
@@ -231,11 +232,11 @@ class MaxLoss(ConfidenceBasedQueryStrategy):
         super().__init__(lower_is_better=False)
 
     def get_confidence(self, clf, dataset, _indices_unlabeled, _indices_labeled, _y):
-        proba = clf.predict_proba(dataset)
-        predictions = 2 * proba - 1
+        self.proba_ = clf.predict_proba(dataset)
+        predictions = 2 * self.proba_ - 1
         num_class = np.shape(_y)[1]
         cls_mtx = -np.ones(shape=(len(dataset), num_class))
-        for inst_id, most_certain_class in enumerate(proba.argmax(axis=1)):
+        for inst_id, most_certain_class in enumerate(self.proba_.argmax(axis=1)):
             cls_mtx[inst_id, most_certain_class] = 1
         cls_loss = np.maximum(1 - np.multiply(cls_mtx, predictions), 0).sum(axis=1)
         return cls_loss
@@ -256,8 +257,8 @@ class MeanMaxLoss(ConfidenceBasedQueryStrategy):
         super().__init__(lower_is_better=False)
 
     def get_confidence(self, clf, dataset, _indices_unlabeled, _indices_labeled, _y):
-        proba = clf.predict_proba(dataset)
-        predictions = 2 * proba - 1
+        self.proba_ = clf.predict_proba(dataset)
+        predictions = 2 * self.proba_ - 1
         num_class = np.shape(_y)[1]
         cls_mtx = 2*np.eye(num_class, num_class)-1
         loss_mtx = np.maximum(1-np.dot(predictions, cls_mtx), 0)
@@ -279,10 +280,10 @@ class BinaryMinimum(ConfidenceBasedQueryStrategy):
         super().__init__(lower_is_better=True)
 
     def get_confidence(self, clf, dataset, _indices_unlabeled, _indices_labeled, _y):
-        proba = clf.predict_proba(dataset)
+        self.proba_ = clf.predict_proba(dataset)
         num_class = np.shape(_y)[1]
         threshold = 0.5 * np.ones(shape=(len(dataset), num_class))
-        distance = np.abs(proba-threshold)
+        distance = np.abs(self.proba_-threshold)
         distance_min = distance.min(axis=1)
         return distance_min
 
@@ -302,9 +303,9 @@ class MinConfidenceNoWeighting(ConfidenceBasedQueryStrategy):
         super().__init__(lower_is_better=True)
 
     def get_confidence(self, clf, dataset, _indices_unlabeled, _indices_labeled, _y):
-        proba = clf.predict_proba(dataset)
+        self.proba_ = clf.predict_proba(dataset)
         # range from [0,1] to [-1,1]
-        proba = 2 * proba - 1
+        proba = 2 * self.proba_ - 1
         return np.abs(proba).min(axis=1)
 
     def __str__(self):
@@ -337,9 +338,9 @@ class MaxMarginUncertainty(ConfidenceBasedQueryStrategy):
         super().__init__(lower_is_better=False)
 
     def get_confidence(self, clf, dataset, _indices_unlabeled, _indices_labeled, _y):
-        proba = clf.predict_proba(dataset)
+        self.proba_ = clf.predict_proba(dataset)
         # range from [0,1] to [-1,1]
-        proba = 2 * proba - 1
+        proba = 2 * self.proba_ - 1
         positive = np.copy(proba)
         positive[proba <= 0] = 100
         negative = np.copy(proba)
@@ -361,9 +362,9 @@ class LabelCardinalityInconsistency(ConfidenceBasedQueryStrategy):
         super().__init__(lower_is_better=False)
 
     def get_confidence(self, clf, dataset, _indices_unlabeled, _indices_labeled, _y):
-        proba = clf.predict_proba(dataset)
+        self.proba_ = clf.predict_proba(dataset)
         average_positive_label = _y.mean(axis=0).sum()
-        label_cardinality = np.sqrt((proba.sum(axis=1) - average_positive_label)**2)
+        label_cardinality = np.sqrt((self.proba_.sum(axis=1) - average_positive_label)**2)
         return label_cardinality
 
     def __str__(self):
@@ -377,8 +378,8 @@ class LeastConfidenceThreshold(ConfidenceBasedQueryStrategy):
         super().__init__(lower_is_better=False)
 
     def get_confidence(self, clf, dataset, _indices_unlabeled, _indices_labeled, _y):
-        proba = clf.predict_proba(dataset)
-        uncertainty_array = (1/(np.abs(proba-(1-proba))+0.01))/100
+        self.proba_ = clf.predict_proba(dataset)
+        uncertainty_array = (1/(np.abs(self.proba_-(1-self.proba_))+0.01))/100
         confidence = []
         for uncertainty in uncertainty_array:
             score = sum(uncertainty)
@@ -396,8 +397,8 @@ class LeastMeanConfidence(ConfidenceBasedQueryStrategy):
         super().__init__(lower_is_better=True)
 
     def get_confidence(self, clf, dataset, _indices_unlabeled, _indices_labeled, _y):
-        proba = clf.predict_proba(dataset)
-        uncertainty_array = np.abs(proba - (1-proba))
+        self.proba_ = clf.predict_proba(dataset)
+        uncertainty_array = np.abs(self.proba_ - (1-self.proba_))
         confidence = []
         for uncertainty in uncertainty_array:
             score = sum(uncertainty)
@@ -522,17 +523,21 @@ class CategoryVectorInconsistencyAndRanking(QueryStrategy):
         self.prediction_threshold = prediction_threshold
         self.epsilon = epsilon
         self.pbar = pbar
+        self.score_ = None
+        self.proba_ = None
 
     def query(self, clf, dataset, indices_unlabeled, _indices_labeled, y, n=10):#, batch_composition_strategy=None, train_embeddings=None):
         self._validate_query_input(indices_unlabeled, n)
 
-        y_proba = clf.predict_proba(dataset[indices_unlabeled])
-        scores = self._compute_scores(indices_unlabeled, y, y_proba)
+        self.proba_ = clf.predict_proba(dataset[indices_unlabeled])
+        self.score_ = self._compute_scores(indices_unlabeled, y, self.proba_)
 
         if len(indices_unlabeled) == n:
             return np.array(indices_unlabeled)
 
-        indices_queried = np.argpartition(-scores, n)[:n]
+        indices_queried = np.argpartition(-self.score_, n)[:n]
+        self.proba_ = np.delete(self.proba_, indices_queried, axis=0)
+        self.score_ = np.delete(self.score_, indices_queried)
         return np.array([indices_unlabeled[i] for i in indices_queried])
 
     def _compute_scores(self, indices_unlabeled, y, proba):

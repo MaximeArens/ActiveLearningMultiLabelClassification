@@ -14,6 +14,7 @@ from sklearn.metrics import auc
 from scipy.sparse import csr_matrix, vstack
 
 from small_text.active_learner import PoolBasedActiveLearner
+from active_learning_lab.experiments.alternate_active_learner import AlternatePoolBasedActiveLearner
 from small_text.integrations.pytorch.classifiers import PytorchClassifier
 from torch.nn import DataParallel
 
@@ -308,12 +309,19 @@ class ActiveLearningRun(object):
             torch.cuda.empty_cache()
 
     def _get_initialized_active_learner(self, train_set):
-
-        active_learner = PoolBasedActiveLearner(
-            self.classification_args.classifier_factory,
-            self.query_strategy,
-            train_set, reuse_model=True)
-            #incremental_training=self.classification_args.incremental_training)
+        if self.dataset_config.dataset_kwargs['wait_strategy'] == None:
+            active_learner = PoolBasedActiveLearner(
+                self.classification_args.classifier_factory,
+                self.query_strategy,
+                train_set, reuse_model=True)
+                #incremental_training=self.classification_args.incremental_training)
+        else:
+            active_learner = AlternatePoolBasedActiveLearner(
+                self.classification_args.classifier_factory,
+                self.query_strategy,
+                train_set,
+                self.dataset_config.dataset_kwargs['wait_strategy'],
+                reuse_model=True)
 
         strategy = self.initialization_strategy
         num_samples = self.initialization_strategy_kwargs.get('num_instances',
@@ -359,7 +367,7 @@ class ActiveLearningRun(object):
             has_return_value=False)
 
         logging.info('Number of gpus : %d', torch.cuda.device_count())
-        
+
         if torch.cuda.is_available():
             if torch.cuda.device_count() > 1:
                 active_learner.classifier.model = DataParallel(self.active_learner.classifier.model)

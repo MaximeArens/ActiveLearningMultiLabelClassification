@@ -32,7 +32,8 @@
       "clustering": true,
       "clustering_indices": null,
       "min_community_size": 1,
-      "similarity_threshold": 0.9
+      "similarity_threshold": 0.9,
+      "wait_strategy": null
     }
   },
   "active_learner": {
