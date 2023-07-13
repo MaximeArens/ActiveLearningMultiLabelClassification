@@ -221,9 +221,10 @@ class AlternatePoolBasedActiveLearner(AbstractPoolBasedActiveLearner):
                 else:
                     confidence_score = self.query_strategy.scores_
                     proba = self.query_strategy.proba_
-
-                if not self.query_strategy.lower_is_better:
-                    confidence_score = -confidence_score
+                    
+                if hasattr(self.query_strategy, 'lower_is_better'):
+                    if not self.query_strategy.lower_is_better:
+                        confidence_score = -confidence_score
 
                 # Calculate intermediate weighting vector
                 inter_weight = [0]*num_labels
