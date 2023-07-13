@@ -523,21 +523,21 @@ class CategoryVectorInconsistencyAndRanking(QueryStrategy):
         self.prediction_threshold = prediction_threshold
         self.epsilon = epsilon
         self.pbar = pbar
-        self.score_ = None
+        self.scores_ = None
         self.proba_ = None
 
     def query(self, clf, dataset, indices_unlabeled, _indices_labeled, y, n=10):#, batch_composition_strategy=None, train_embeddings=None):
         self._validate_query_input(indices_unlabeled, n)
 
         self.proba_ = clf.predict_proba(dataset[indices_unlabeled])
-        self.score_ = self._compute_scores(indices_unlabeled, y, self.proba_)
+        self.scores_ = self._compute_scores(indices_unlabeled, y, self.proba_)
 
         if len(indices_unlabeled) == n:
             return np.array(indices_unlabeled)
 
-        indices_queried = np.argpartition(-self.score_, n)[:n]
+        indices_queried = np.argpartition(-self.scores_, n)[:n]
         self.proba_ = np.delete(self.proba_, indices_queried, axis=0)
-        self.score_ = np.delete(self.score_, indices_queried)
+        self.scores_ = np.delete(self.scores_, indices_queried)
         return np.array([indices_unlabeled[i] for i in indices_queried])
 
     def _compute_scores(self, indices_unlabeled, y, proba):
