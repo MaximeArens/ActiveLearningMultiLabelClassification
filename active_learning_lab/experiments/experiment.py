@@ -370,7 +370,7 @@ class ActiveLearningRun(object):
 
         if torch.cuda.is_available():
             if torch.cuda.device_count() > 1:
-                active_learner.classifier.model = DataParallel(active_learner.classifier.model)
+                active_learner.classifier.model = DataParallel(active_learner.classifier.model.module)
 
         # Evaluation
         y_train_pred, y_train_proba = active_learner.classifier.predict(train_set,
