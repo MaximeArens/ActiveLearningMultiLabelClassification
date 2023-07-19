@@ -160,9 +160,9 @@ def load_dataset(dataset, dataset_kwargs, classifier_name, classifier_kwargs, da
     dataset = DataSets.from_str(dataset)
 
     train, test, x_train = _load_dataset(dataset, dataset_type_expected, dataset_kwargs, classifier_kwargs)
-    model = SentenceTransformer(dataset_kwargs['sentence_transformer'])
-    train_embeddings = model.encode(x_train, batch_size=64, show_progress_bar=True, convert_to_tensor=True)
     if dataset_kwargs['clustering']:
+        model = SentenceTransformer(dataset_kwargs['sentence_transformer'])
+        train_embeddings = model.encode(x_train, batch_size=64, show_progress_bar=True, convert_to_tensor=True)
         clusters_id = util.community_detection(train_embeddings, min_community_size=dataset_kwargs['min_community_size'], threshold=dataset_kwargs['similarity_threshold'])
         dataset_kwargs['clustering_indices'] = clusters_id
         centroid_clusters = []
