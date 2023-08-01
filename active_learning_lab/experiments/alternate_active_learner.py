@@ -201,8 +201,9 @@ class AlternatePoolBasedActiveLearner(AbstractPoolBasedActiveLearner):
                                          **query_strategy_kwargs)
             if wait_strategy == "stale":
                 confidence = self.query_strategy.scores_
-                if not self.query_strategy.lower_is_better:
-                    confidence = -confidence
+                if hasattr(self.query_strategy, 'lower_is_better'):
+                    if not self.query_strategy.lower_is_better:
+                        confidence = -confidence
                 if self.query_strategy.scores_.size == self.mask.size:
                     indices_partitioned = np.argpartition(confidence[indices_unlabeled], range(n))[:n]
                     indices_to_query = np.array([indices_unlabeled[i] for i in indices_partitioned])
