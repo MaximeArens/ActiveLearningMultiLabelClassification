@@ -153,8 +153,8 @@ class AlternatePoolBasedActiveLearner(AbstractPoolBasedActiveLearner):
 
         representation = self.dataset if representation is None else representation
         # calculate num_samples for alternative query and active learning query
-        num_samples_alternate = math.floor(num_samples / 2)
-        num_samples_active_learning = math.ceil(num_samples / 2)
+        num_samples_alternate = math.floor(num_samples / 4) #math.floor(num_samples / 2)
+        num_samples_active_learning = num_samples - num_samples_alternate #math.ceil(num_samples / 2)
         #get round of active learning
         round_al = int(self.y.shape[0]/num_samples)
         # instances to query during wait time
